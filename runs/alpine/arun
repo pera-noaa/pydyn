@@ -3,7 +3,7 @@
 # tests/test_gpu.py by default; `arun -- <command>` runs that instead (python -m pydyn.gpu.bench ...).
 # Rides the user's `ssh alpine` ControlMaster (BatchMode: no Duo).
 set -uo pipefail
-SRC=${PYDYN_SRC:-$HOME/Documents/ash-code/pydyn}
+SRC=${PYDYN_SRC:-$(cd "$(dirname "$0")/../.." && pwd)}
 R=${PYDYN_ALPINE_ROOT:-/projects/aspe7977/pydyn}
 F() { grep -v "consoletype\|use tty"; }
 J=$(ssh -o BatchMode=yes alpine 'squeue -u $USER -n pydyn-hold -t R -h -o %i' 2>&1 | F | head -1)

@@ -20,7 +20,7 @@
 # reference arithmetic it was derived from and is what is built here.
 
 # TM5ZOOM is the tm5-zoom checkout the kernels are read from; nothing is written
-# there.  Default: the sibling repo under ash-code.  Override on the command line
+# there.  Default: a tm5-zoom checkout beside this repo.  Override on the command line
 # or in the environment to build against another checkout or sha.
 TM5ZOOM ?= ../../tm5-zoom
 

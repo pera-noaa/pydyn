@@ -10,12 +10,21 @@ readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "Ash Pera" }]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
 requires-python = ">=3.9"
 # The bitwise results are measured under NumPy 1.26.4 and 2.5.4 (arm64 laptop; 2.5.4 is uv.lock's)
 # and 2.0.2 (Orion, x86-64);
 # docs/state.md section 3c says which claim holds where.  No upper pin: what a NumPy change
 # can move is caught by the suite, and conftest.py prints the version and SIMD paths it ran on.
 dependencies = ["numpy>=1.26", "netCDF4>=1.7"]  # netCDF4: the input files (meteo, emis, chemfields, initial)
+
+[project.urls]
+Repository = "https://github.com/pera-noaa/pydyn"
+Issues = "https://github.com/pera-noaa/pydyn/issues"
 
 [tool.setuptools]
 packages = ["pydyn", "pydyn.zoom", "pydyn.gpu"]

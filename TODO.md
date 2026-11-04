@@ -4,10 +4,10 @@ Items use the prefix `PYD-N`. Nothing here was forwarded from a tm5-zoom item: t
 through commits in `tools/pydyn` and never had a number. If one is opened there that overlaps,
 keep the origin in the title, `PYD-n. (was tm5-zoom #N) ...`, and leave the tm5-zoom item alone.
 
-Source repo for the pointers below: `ash-code/tm5-zoom`, branch `NOAA/ct-unified`. Most were
+Source repo for the pointers below: tm5-zoom, branch `NOAA/ct-unified`. Most were
 read at `4dc2017c5` and are cited that way; anything added since carries its own sha, and the
 repo's current pin is `745e94f70` (`docs/sources.md`). Cite the sha you read at, never `HEAD`
-— sister sessions commit to that repo concurrently and its history gets rewritten.
+— that repo's history gets rewritten.
 
 Tags are the tm5-zoom convention: `[U:urgency F:confidence E:S|M|L]`. An item moves to
 **Landed** when it is done and to **Parked** when it is deliberately not being done; nothing
