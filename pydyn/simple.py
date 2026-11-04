@@ -117,7 +117,7 @@ def advect_line(m, rm, s, t, u, flux, limits=True, max_steps=50, periodic=False,
         fields = [wrap(q, 0) for q in (m, rm, s, t, u)]
         c_max = max(c_max, _substep(*fields, a, limits, flat_ends))
         if periodic:
-            for q, w in zip((m, rm, s, t, u), fields):
+            for q, w in zip((m, rm, s, t, u), fields, strict=True):
                 q[...] = w[1:-1]
     return n, c_max
 

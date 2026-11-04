@@ -147,7 +147,7 @@ def _advect_rows_x(m, rm, rxm, rym, rzm, a, limits, max_nloop):
             continue
         parts = [q[:, rows] for q in (m, rm, rxm, rym, rzm)]
         _substeps_x(*parts, a[:, rows], int(n), limits)
-        for q, part in zip((m, rm, rxm, rym, rzm), parts):
+        for q, part in zip((m, rm, rxm, rym, rzm), parts, strict=True):
             q[:, rows] = part
     a[...] = a * nloop  # Fortran: "restore old am"
     return nloop, alpha_max

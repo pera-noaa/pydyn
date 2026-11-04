@@ -622,7 +622,7 @@ class MetalBackend(Backend):
         out = (ctypes.c_double * len(self._labels))()
         m = self.L.pdm_profile_end(out, len(self._labels))
         prof = {}
-        for label, t in zip(self._labels[:m], out):
+        for label, t in zip(self._labels[:m], out, strict=False):  # out has room for every label
             rec = prof.setdefault(label, [0, 0.0])
             rec[0] += 1
             rec[1] += t

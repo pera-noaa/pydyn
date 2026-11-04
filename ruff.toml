@@ -1,6 +1,6 @@
 # Lint config for pydyn (serial python reference of the TM5 dynamic core).
 # Same rule set as tm5-zoom's tools/disk_usage so "it passes" means the same thing everywhere.
-target-version = "py39"
+target-version = "py310"
 line-length = 110
 
 [lint]

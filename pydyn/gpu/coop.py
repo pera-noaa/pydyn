@@ -66,7 +66,7 @@ def enabled(kernel, backend):
 
 def launch_shape(kernel, sig, args):
     """(threads, PD_COOP_FACES) of the cooperative launch of `kernel` with these arguments."""
-    v = {name: a for (_, name), a in zip(sig, args)}
+    v = {name: a for (_, name), a in zip(sig, args, strict=True)}
     lines_of, length = COOP[kernel]
     nlines = 1
     for p in lines_of:

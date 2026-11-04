@@ -40,7 +40,7 @@ def convec_region(zoom, st, region, conv, ndyn, inverse="crout"):
     meteo = {k: gather(np.asarray(conv[k])) for k in names}
     dt = ndyn / (2.0 * g.tref)
     convec(*work, **meteo, dt=dt, lmax=conv["lmax"], inverse=inverse)
-    for q, w in zip(fields, work):
+    for q, w in zip(fields, work, strict=True):
         q[cols] = w[:, 0]
 
 

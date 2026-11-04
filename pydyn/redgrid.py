@@ -31,7 +31,7 @@ class RedGrid:
         self.im, self.jm = im, jm
         self.bands = []
         self.imred = np.full(jm, im, dtype=int)
-        for j, c in zip(jred, clustsize):
+        for j, c in zip(jred, clustsize, strict=True):
             if im % c:
                 raise ValueError(f"redgrid: im={im} not a multiple of clustsize {c}")
             self.bands.append((j - 1, c, im // c))

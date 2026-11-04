@@ -218,7 +218,7 @@ def mix_edges(zoom, st, region, tracers=True):
         for lev in range(1, zoom.lm + 1):
             qs = [f[name][1:imr, 1:jmr, lev, n] for name in ("rm", "rxm", "rym", "rzm")]
             means = [block_means(q) for q in qs]  # all four accumulated before any is replaced
-            for q, t in zip(qs, means):
+            for q, t in zip(qs, means, strict=True):
                 spread(q, t)
 
 

@@ -71,7 +71,8 @@ def test_dynam0():
     pv[:, 0] = pv[:, JM] = 0.0
     bt = np.array([1.0, 0.9, 0.6, 0.3, 0.1, 0.0])
     for got, ref, name in zip(
-        simple.fluxes_from_meteo(pu, pv, bt, DT), kernels.fluxes_from_meteo(pu, pv, bt, DT), "abc"
+        simple.fluxes_from_meteo(pu, pv, bt, DT), kernels.fluxes_from_meteo(pu, pv, bt, DT), "abc",
+        strict=True,
     ):
         _assert_close(got, ref, name + "m")
 

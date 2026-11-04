@@ -49,7 +49,7 @@ def fetch(files, out):
         with tarfile.open(path) as tar:
             if hasattr(tarfile, "data_filter"):
                 tar.extractall(out, filter="data")
-            else:  # Python < 3.9.17: the archive's members are plain files under one directory
+            else:  # Python < 3.10.12: the archive's members are plain files under one directory
                 tar.extractall(out)
         print(f"{name}: md5 ok, unpacked", file=sys.stderr)
 

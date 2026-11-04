@@ -266,7 +266,7 @@ def main():
 
     rows, st, verdict = score_groups(groups, day, t, y, h1, h2, population, nboot=a.nboot)
     loc = defaultdict(list)
-    for i, g in zip(ids, groups):
+    for i, g in zip(ids, groups, strict=True):
         loc[g].append(p[i][4:6])
     for r in rows:
         r["lat"], r["lon"] = np.nanmedian(np.array(loc[r["group"]]), axis=0)

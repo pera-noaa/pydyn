@@ -187,7 +187,7 @@ def _runs(rows, key):
 def _offset(fv, *index):
     """The element offset of Fortran index `index` from the start of fv.data."""
     s = backend().strides(fv.data)
-    return sum((i - lo) * st for i, lo, st in zip(index, fv.lower, s))
+    return sum((i - lo) * st for i, lo, st in zip(index, fv.lower, s, strict=False))  # a partial index
 
 
 def mix_edges(zoom, st, region, tracers=True):

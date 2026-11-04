@@ -55,7 +55,7 @@ def main():
         meta = ev.meta
         row = {"idate": "".join(f"{v:02d}" for v in meta["idate"][:4]),
                "model_ndyn": meta["ndyn_out"], "model_n": meta["n_out"]}
-        for spec, lim in zip(args.limits, limits):
+        for spec, lim in zip(args.limits, limits, strict=True):
             ndyn, n, iters, trace = run(ev, lim)
             row[f"ndyn[{spec}]"] = ndyn
             row[f"n[{spec}]"] = n

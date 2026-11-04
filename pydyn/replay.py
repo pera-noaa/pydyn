@@ -276,7 +276,7 @@ def check_tree(zm, evs):
 def copy_into(view, arr):
     """The Fortran-bounded dump array `arr` over the bounds of the FView `view` (which the dump
     must cover) written into it."""
-    for lo, hi, alo, ahi in zip(view.lower, view.upper, arr.lower, arr.upper):
+    for lo, hi, alo, ahi in zip(view.lower, view.upper, arr.lower, arr.upper, strict=True):
         if lo < alo or hi > ahi:
             raise ValueError(f"dump bounds {arr} do not cover {view}")
     view.data[...] = arr.data[arr.window(view)]
@@ -583,7 +583,7 @@ def meteo_mass(ev, solver, parent=None, poisson=None, raw=None):
 
 def _meteo_reports(ev, mass):
     return [compare(ev.interior(f"{n}{k}"), q, f"{n}{k}")
-            for k, fluxes in mass.items() for n, q in zip(("pu", "pv", "pw"), fluxes[:3])]
+            for k, fluxes in mass.items() for n, q in zip(("pu", "pv", "pw"), fluxes[:3], strict=True)]
 
 
 class Meteo:
@@ -1045,7 +1045,7 @@ def _ranges(boundaries, n_events, workers):
     for b in starts[1:]:
         if b >= target * len(cuts) and len(cuts) < workers:
             cuts.append(b)
-    return list(zip(cuts, [*cuts[1:], n_events]))
+    return list(zip(cuts, [*cuts[1:], n_events], strict=True))
 
 
 def _replay_parallel(args, workers):

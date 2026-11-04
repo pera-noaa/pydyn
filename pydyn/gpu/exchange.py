@@ -123,7 +123,7 @@ def _put_xedges(zoom, st, region, tracers):
         if tracers:
             plan += [
                 (name, (n,), inner)
-                for name, inner in zip(TRACERS, (xyzref, yzref, yzref, yzref))
+                for name, inner in zip(TRACERS, (xyzref, yzref, yzref, yzref), strict=True)
                 for n in range(1, st.nt + 1)
             ]
         for name, t, inner in plan:
@@ -162,7 +162,7 @@ def _put_yedges(zoom, st, region, tracers):
         if tracers:
             plan += [
                 (name, (n,), inner)
-                for name, inner in zip(TRACERS, (xyzref, xzref, xzref, xzref))
+                for name, inner in zip(TRACERS, (xyzref, xzref, xzref, xzref), strict=True)
                 for n in range(1, st.nt + 1)
             ]
         for name, t, inner in plan:

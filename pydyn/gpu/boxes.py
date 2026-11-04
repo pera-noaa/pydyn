@@ -61,7 +61,7 @@ def _source(be, src, dshape, rep, sum_axes):
     shape, st = _pad(shape, st)
     rep = (1,) * (4 - len(rep)) + tuple(rep) if rep is not None else (1, 1, 1, 1)
     strides, divs = [], []
-    for d, s, stride, r in zip(dshape, shape, st, rep):
+    for d, s, stride, r in zip(dshape, shape, st, rep, strict=True):
         if s == d and r == 1:
             strides.append(stride)
             divs.append(1)
@@ -97,7 +97,7 @@ class Batch:
         if op == SEQSUM and len(axes) != 1:
             raise ValueError("boxes: SEQSUM sums one axis")
         cols, sums = [], [(1, 0), (1, 0)]
-        for src, r in zip(srcs, reps):
+        for src, r in zip(srcs, reps, strict=True):
             addr, strides, divs, sm = _source(be, src, dshape, r, axes)
             cols.append((addr, strides, divs))
             if op in _SUMS:
@@ -156,7 +156,8 @@ def _check(dst, reads, dsts, srcs):
 
 
 def _elements(base, shape, strides, itemsize):
-    grids = np.ix_(*(np.arange(n, dtype=np.int64) * s * itemsize for n, s in zip(shape, strides)))
+    grids = np.ix_(*(np.arange(n, dtype=np.int64) * s * itemsize
+                     for n, s in zip(shape, strides, strict=True)))
     return (base + sum(grids)).ravel()
 
 

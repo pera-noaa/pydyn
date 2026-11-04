@@ -29,7 +29,7 @@ class DeviceEngine:
         return gz.zeros(zm, nt)
 
     def copy_into(self, view, arr):
-        for lo, hi, alo, ahi in zip(view.lower, view.upper, arr.lower, arr.upper):
+        for lo, hi, alo, ahi in zip(view.lower, view.upper, arr.lower, arr.upper, strict=True):
             if lo < alo or hi > ahi:
                 raise ValueError(f"dump bounds {arr} do not cover {view}")
         view.data[...] = self.backend.to_device(arr.data[arr.window(view)], "dump")

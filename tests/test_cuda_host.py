@@ -111,7 +111,7 @@ def _uploads_survive(be, stream):
         dev = [be.to_device(h) for h in host]
         assert stream.queue, "the uploads did not wait for the stream"
         be.sync()
-        ok &= all(np.array_equal(d.arr, h) for d, h in zip(dev, host))
+        ok &= all(np.array_equal(d.arr, h) for d, h in zip(dev, host, strict=True))
     return ok
 
 
@@ -187,4 +187,4 @@ def test_staging_waits_for_the_mark_of_its_copy(cuda):
     dev.append(be.to_device(host[3]))  # the first chunk's copies have run: reused
     assert len(be._staging.chunks) == 2
     be.sync()
-    assert all(np.array_equal(d.arr, h) for d, h in zip(dev, host))
+    assert all(np.array_equal(d.arr, h) for d, h in zip(dev, host, strict=True))

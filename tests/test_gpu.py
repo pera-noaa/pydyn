@@ -85,7 +85,7 @@ def test_pmath_is_within_an_ulp_of_the_system_libm():
     cases = {
         "exp": [(x,) for x in rng.uniform(-700, 700, 3000)],
         "log": [(x,) for x in np.exp(rng.uniform(-700, 700, 3000))],
-        "pow": [(x, y) for x, y in zip(rng.uniform(0.1, 10, 3000), rng.uniform(-5, 5, 3000))]
+        "pow": [(x, y) for x, y in zip(rng.uniform(0.1, 10, 3000), rng.uniform(-5, 5, 3000), strict=True)]
         + [(x, 1.0 / 3.0) for x in rng.uniform(1e-6, 1e3, 1000)],
     }
     for name, args in cases.items():
@@ -125,7 +125,8 @@ def test_advection_kernels(be, cfl):
                 _device_advect(be, G, axis, s, fluxes[axis])
             continue
         got = _device_advect(be, G, axis, s, fluxes[axis])
-        for name, a, b in zip(("m", "rm", "rxm", "rym", "rzm", "flux"), got, (*_fields(ref), f_ref)):
+        names = ("m", "rm", "rxm", "rym", "rzm", "flux")
+        for name, a, b in zip(names, got, (*_fields(ref), f_ref), strict=True):
             assert _equal(a, b), ("xyz"[axis], name)
 
 
@@ -161,7 +162,7 @@ def test_convec(be, inverse):
             k: be.to_device(v, "input", np.int32 if k.startswith("cloud") else None) for k, v in conv.items()
         }
         G.convec(*d, dc, 1800.0, lmax, be.to_device(np.arange(IM * JM, dtype=np.int32)), inverse=inverse)
-        for a, b in zip(d, _fields(ref)):
+        for a, b in zip(d, _fields(ref), strict=True):
             assert _equal(be.to_host(a), b), (inverse, lmax)
 
 
@@ -174,7 +175,7 @@ def test_dynam0_and_cluster_sum(be):
     ref = kernels.fluxes_from_meteo(pu, pv, bt, 900.0)
     got = [be.xp.zeros(x.shape) for x in ref]
     G.fluxes_from_meteo(be.to_device(pu), be.to_device(pv), be.to_device(bt), 900.0, *got)
-    assert all(_equal(be.to_host(g), r) for g, r in zip(got, ref))
+    assert all(_equal(be.to_host(g), r) for g, r in zip(got, ref, strict=True))
     q = rng.normal(size=(60, LM, NT))
     assert _equal(
         be.to_host(G.cluster_sum(be.to_device(q), 3, 20)), ops.seqsum(ops.clusters(q, 3, 20), axis=1)
@@ -512,7 +513,7 @@ def test_the_checks_fail_under_contraction(monkeypatch):
         ref, a_ref = s.copy(), am.copy()
         kernels.advect_x(*_fields(ref), a_ref)
         got = _device_advect(be, G, 0, s, am)
-        caught = not all(_equal(a, b) for a, b in zip(got, _fields(ref)))
+        caught = not all(_equal(a, b) for a, b in zip(got, _fields(ref), strict=True))
         if not caught and platform.machine() not in ("arm64", "aarch64"):
             pytest.skip(f"no FMA to contract into on {platform.machine()}")
         assert caught, "an FMA build passed the bitwise test"

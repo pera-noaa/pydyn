@@ -88,7 +88,7 @@ def _hourly(f, hours):
 
 def _differ(a, b):
     """Each hour, the names of the arrays a and b differ in."""
-    return [[n for n in STATE if not compare(x[n], y[n], n)["equal"]] for x, y in zip(a, b)]
+    return [[n for n in STATE if not compare(x[n], y[n], n)["equal"]] for x, y in zip(a, b, strict=True)]
 
 
 def test_the_device_is_the_cpu_run_with_its_twins():

@@ -273,7 +273,7 @@ class Backend:
         column, on the device)."""
         from . import convec_gen
 
-        v = {name: a for (_, name), a in zip(sig, args)}
+        v = {name: a for (_, name), a in zip(sig, args, strict=True)}
         n, kind = int(v["lmax"]), int(v["kind"])
         mod = self.module(**defines, PD_CONVEC_N=n)
         key = (self.address(v["cols"]), self.address(v["m"]), n, float(v["dt"]), ncol, kind)
@@ -297,7 +297,7 @@ class Backend:
         """pd_inverse_rows as the LAPACK kind's pass alone (pd_cvg, every column flagged)."""
         from . import convec_gen
 
-        v = {name: a for (_, name), a in zip(sig, args)}
+        v = {name: a for (_, name), a in zip(sig, args, strict=True)}
         ncol, n = int(v["ncol"]), int(v["n"])
         v["F"] = self._scratch((ncol,), np.int32, 1)
         spec = convec_gen.ARGS["cvg"]
@@ -595,7 +595,7 @@ class CudaBackend(Backend):
         if got is None:
             got = self._functions[key] = self._parameters(mod, kernel, sig)
         fptr, slots, params = got
-        for (slot, kind), a in zip(slots, args):
+        for (slot, kind), a in zip(slots, args, strict=True):
             if kind == "ptr":
                 slot.value = 0 if a is None else a.data.ptr
             elif kind == "real":
@@ -685,7 +685,7 @@ class CudaBackend(Backend):
         if self._deferred:
             flags = [f.ravel()[:1] for f, _ in self._deferred]
             set_ = self.cupy.asnumpy(self.cupy.concatenate(flags))
-            failed = [exc for (_, exc), v in zip(self._deferred, set_) if v]
+            failed = [exc for (_, exc), v in zip(self._deferred, set_, strict=True) if v]
             self._deferred.clear()
             if failed:
                 raise failed[0]
@@ -755,7 +755,7 @@ class EmuBackend(Backend):
             f.argtypes = [ctypes.c_void_p if c.endswith("*") else types[c] for c, _ in sig]
             f.restype = None
         conv = []
-        for (ctype, _), a in zip(sig, args):
+        for (ctype, _), a in zip(sig, args, strict=True):
             if ctype.endswith("*"):
                 conv.append(None if a is None else a.base_array.ctypes.data)
             else:

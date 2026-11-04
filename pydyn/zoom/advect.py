@@ -307,7 +307,7 @@ def _rows_child(m, a, q4, limits, max_nloop):
             continue
         parts = [q[:, rows] for q in (m, *q4)]
         _substeps_child(parts[0], a[:, rows], parts[1:], int(n), limits)
-        for q, part in zip((m, *q4), parts):
+        for q, part in zip((m, *q4), parts, strict=True):
             q[:, rows] = part
     a[...] = a * nloop  # restore 'old' am
     return nloop, max_alpha

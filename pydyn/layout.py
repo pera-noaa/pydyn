@@ -80,7 +80,8 @@ def _interior_index(name, im, jm, lm):
     """The numpy index of the interior of a full array (index 0 = the declared lower bound)."""
     lower = [lo for lo, _ in bounds(name, im, jm, lm)]
     sec = interior_section(name, im, jm, lm)
-    return (*(slice(s.start - lo, s.stop - lo + 1) for s, lo in zip(sec, lower)), Ellipsis)
+    # the section names the leading dimensions; Ellipsis takes the rest whole
+    return (*(slice(s.start - lo, s.stop - lo + 1) for s, lo in zip(sec, lower, strict=False)), Ellipsis)
 
 
 def from_tm5(name, arr, im, jm, lm):

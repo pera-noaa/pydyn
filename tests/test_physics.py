@@ -87,7 +87,7 @@ def test_use_libm_routes_every_function_through_the_named_library():
         ops.use_libm(path)
         assert ops.libm.path == path
         got = [ops.libm.exp(x), ops.libm.log(x), ops.libm.pow(x, 1.37), ops.libm.cos(x), ops.libm.sin(x)]
-        for g, w in zip(got, want):
+        for g, w in zip(got, want, strict=True):
             np.testing.assert_array_equal(g, w)
     finally:
         for n, f in saved.items():

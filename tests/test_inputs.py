@@ -62,7 +62,7 @@ def test_interpolation_maps_clamp_latitude_and_wrap_longitude():
 
 
 def test_clump_levels_is_the_thickness_weighted_mean():
-    sizes = [a - b for a, b in zip(chemfields.ECHLEVS[:-1], chemfields.ECHLEVS[1:])]
+    sizes = [a - b for a, b in zip(chemfields.ECHLEVS[:-1], chemfields.ECHLEVS[1:], strict=True)]
     assert sum(sizes) == 137 and len(sizes) == 34
     rng = np.random.default_rng(1)
     dz = rng.uniform(10.0, 1000.0, (3, 2, 137))

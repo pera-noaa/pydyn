@@ -124,7 +124,7 @@ def loss_rates(
     rebinned = rebin_many(edges, [data[None] for data in columns.values()], phlb)
     below = phlb[..., :-1] > edges[..., :1]
     strat = {name: np.where(below, data[None, :, 0][..., None], col)
-             for (name, data), col in zip(columns.items(), rebinned)}  # fmt: skip
+             for (name, data), col in zip(columns.items(), rebinned, strict=True)}  # fmt: skip
 
     cl_trop_col = np.zeros((im, jm, lm))
     if cl_trop is not None:

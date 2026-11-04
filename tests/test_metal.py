@@ -55,7 +55,7 @@ def _bits(a):
 
 def _assert_bitwise(e, m, what=""):
     assert len(e) == len(m)
-    for k, (a, b) in enumerate(zip(e, m)):
+    for k, (a, b) in enumerate(zip(e, m, strict=True)):
         assert a.shape == b.shape and a.dtype == b.dtype, (what, k)
         diff = np.flatnonzero((_bits(a) != _bits(b)).ravel())
         assert diff.size == 0, (what, k, diff.size, a.ravel()[diff[:3]], b.ravel()[diff[:3]])
@@ -209,7 +209,7 @@ def test_a_lapack_pass_without_its_rules_fails(pair, monkeypatch, variant, old, 
     finally:
         B.set_backend(good)
         metal.MetalArray.be = good
-    assert any((_bits(a) != _bits(b)).any() for a, b in zip(e, m)), f"{variant} passed"
+    assert any((_bits(a) != _bits(b)).any() for a, b in zip(e, m, strict=True)), f"{variant} passed"
 
 
 def test_dynam0_and_cluster_sum(pair):
@@ -310,7 +310,7 @@ def test_whole_step(pair, tree):
     Z.step(zm, st, conv, 3600)
     ref = _arrays(zm, st)
     names = [(r, name) for r in zm.regions() for name in sorted(st[r])]
-    for (r, name), a, b in zip(names, m, ref):
+    for (r, name), a, b in zip(names, m, ref, strict=True):
         if name in ("m", "rm"):
             np.testing.assert_allclose(
                 a, b, rtol=2e-4, atol=1e-6 * np.abs(b).max(), err_msg=f"{tree} {r} {name}"
@@ -377,7 +377,7 @@ def test_a_contracted_metal_build_fails(pair, monkeypatch):
     finally:
         B.set_backend(good)
         metal.MetalArray.be = good
-    assert any((_bits(a) != _bits(b)).any() for a, b in zip(e, m)), "a contracted build passed"
+    assert any((_bits(a) != _bits(b)).any() for a, b in zip(e, m, strict=True)), "a contracted build passed"
 
 
 # ------------------------------------------------------------------ speculation

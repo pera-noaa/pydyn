@@ -29,13 +29,13 @@ class FArray:
 
     @property
     def upper(self):
-        return tuple(lo + n - 1 for lo, n in zip(self.lower, self.data.shape))
+        return tuple(lo + n - 1 for lo, n in zip(self.lower, self.data.shape, strict=True))
 
     def _index(self, item):
         if not isinstance(item, tuple):
             item = (item,)
         out = []
-        for lo, ix in zip(self.lower, item):
+        for lo, ix in zip(self.lower, item, strict=False):  # a partial index: the rest whole
             if isinstance(ix, slice):
                 if ix.step not in (None, 1):
                     raise IndexError("FArray: strided Fortran sections are not supported")
@@ -52,11 +52,11 @@ class FArray:
 
     def window(self, other):
         """The numpy index into self.data of the cells `other` (an FArray) spans."""
-        spans = zip(other.lower, other.upper, self.lower)
+        spans = zip(other.lower, other.upper, self.lower, strict=True)
         return tuple(slice(lo - slo, hi - slo + 1) for lo, hi, slo in spans)
 
     def __repr__(self):
-        bounds = ", ".join(f"{lo}:{hi}" for lo, hi in zip(self.lower, self.upper))
+        bounds = ", ".join(f"{lo}:{hi}" for lo, hi in zip(self.lower, self.upper, strict=True))
         return f"{type(self).__name__}({bounds})"
 
 
@@ -81,7 +81,7 @@ class FView(FArray):
 
     def at(self, *index):
         """Fancy indexing with Fortran index arrays (broadcast as numpy does)."""
-        return self.data[tuple(np.asarray(ix) - lo for ix, lo in zip(index, self.lower))]
+        return self.data[tuple(np.asarray(ix) - lo for ix, lo in zip(index, self.lower, strict=False))]
 
 
 def _parse_value(text):
@@ -122,7 +122,7 @@ class Event:
             if key.startswith(("array ", "iarray ")):
                 kind, name = key.split()
                 bounds = [int(w) for w in value.split()]
-                self._bounds[name] = list(zip(bounds[::2], bounds[1::2]))
+                self._bounds[name] = list(zip(bounds[::2], bounds[1::2], strict=True))
                 self._dtype[name] = "<i4" if kind == "iarray" else "<f8"
             else:
                 self.meta[key] = _parse_value(value)
@@ -240,7 +240,7 @@ class MergedEvent:
             values = [e.meta.get(key) for e in parts]
             if key in RANK_LOCAL_TRACER_KEYS:
                 glob = []
-                for rank, v in zip(self.ranks, values):
+                for rank, v in zip(self.ranks, values, strict=True):
                     local = v if isinstance(v, tuple) else (v,)
                     glob += [offsets[rank] + int(n) for n in local]
                 self.meta[key] = tuple(glob)
@@ -275,7 +275,7 @@ class MergedEvent:
                 self._cache[name] = FArray(data, arrays[0].lower)
             else:
                 ref = arrays[0]
-                for rank, a in zip(self.ranks[1:], arrays[1:]):
+                for rank, a in zip(self.ranks[1:], arrays[1:], strict=True):
                     same = a.lower == ref.lower and a.data.shape == ref.data.shape
                     if not same or a.data.tobytes() != ref.data.tobytes():
                         raise RankMismatch(
@@ -345,5 +345,6 @@ def _tracer_offsets(per_rank, ranks):
                 e = next(x for x in per_rank[r] if x.seq == seq)
                 lo, hi = e._bounds["rm"][-1]
                 sizes.append(hi - lo + 1)
-            return dict(zip(ranks, np.concatenate([[0], np.cumsum(sizes)[:-1]]).astype(int).tolist()))
+            offsets = np.concatenate([[0], np.cumsum(sizes)[:-1]]).astype(int).tolist()
+            return dict(zip(ranks, offsets, strict=True))
     return dict.fromkeys(ranks, 0)

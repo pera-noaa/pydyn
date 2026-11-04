@@ -81,7 +81,7 @@ def test_replicated_and_union_equals_serial(serial, merged):
     """Every array: replicated ones identical on all ranks (MergedEvent raises otherwise), and
     the merged run bitwise the serial one; the headers agree except for rank-local keys."""
     diffs = []
-    for s, m in zip(serial, merged):
+    for s, m in zip(serial, merged, strict=True):
         for key, value in m.meta.items():
             if key in ("seq", "rank", "itracer_loc"):  # per rank by definition; i_tracer is compared
                 continue

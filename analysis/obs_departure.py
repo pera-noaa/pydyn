@@ -184,7 +184,7 @@ def main():
 
     rows, st, verdict = score(groups, delta, mdm)
     loc = defaultdict(list)
-    for i, g in zip(ids, groups):
+    for i, g in zip(ids, groups, strict=True):
         loc[g].append(a[i][2:])
     for r in rows:
         la, lo, al = np.nanmedian(np.array(loc[r["group"]], dtype=float), axis=0)

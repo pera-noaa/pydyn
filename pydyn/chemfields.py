@@ -35,6 +35,7 @@ than Hossaini, a soil map other than 'qianlai', OH IAV, and ties in a coordinate
 Fortran's argsort would have to break.
 """
 
+import itertools
 from pathlib import Path
 
 import numpy as np
@@ -170,7 +171,7 @@ def clump_levels(field, dz, echlevs=ECHLEVS):
     """Import_OH_Spivakovsky's vertical regrid: `field` (…, lme) on the layers of thickness
     `dz` (…, lme), bottom up, onto the len(echlevs)-1 model layers, each the mean over its
     clump of echlevs(l-1) - echlevs(l) source layers weighted by thickness, summed in order."""
-    sizes = [a - b for a, b in zip(echlevs[:-1], echlevs[1:])]
+    sizes = [a - b for a, b in itertools.pairwise(echlevs)]
     out = np.empty((*field.shape[:-1], len(sizes)))
     start = 0
     for ilev, n in enumerate(sizes):

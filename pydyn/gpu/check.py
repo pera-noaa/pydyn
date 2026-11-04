@@ -46,8 +46,8 @@ def match(cpu, dev):
     table, bad = defaultdict(lambda: [0, 0]), []
     if [(e.seq, k) for e, k, _, _ in cpu] != [(e.seq, k) for e, k, _, _ in dev]:
         raise SystemExit("the two runs did not produce the same checkpoints")
-    for (ev, kind, rc, _), (_, _, rd, _) in zip(cpu, dev):
-        for a, b in zip(rc, rd):
+    for (ev, kind, rc, _), (_, _, rd, _) in zip(cpu, dev, strict=True):
+        for a, b in zip(rc, rd, strict=True):
             if a["name"] != b["name"]:
                 raise SystemExit(f"e{ev.seq:05d} {kind}: report {a['name']} vs {b['name']}")
             if "sha1" not in a:
