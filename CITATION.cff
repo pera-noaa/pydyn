@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use pydyn, please cite it as below."
+type: software
+title: "pydyn: a serial Python reference of the TM5 dynamic core"
+abstract: >-
+  A NumPy transcription of the transport core of the TM5 atmospheric chemistry-transport
+  model that is bitwise equal to the production Fortran, with the tests that prove it.
+authors:
+  - family-names: Pera
+    given-names: Ash
+    affiliation: "CIRES, University of Colorado Boulder; NOAA Global Monitoring Laboratory"
+version: 0.1.0
+license: Apache-2.0
+repository-code: "https://github.com/pera-noaa/pydyn"
+keywords:
+  - TM5
+  - atmospheric transport
+  - reference implementation
+  - bitwise reproducibility

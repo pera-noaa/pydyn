@@ -1,0 +1,18 @@
+__pycache__/
+.venv/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+.claude/
+
+# fortran/ build artifacts have their own .gitignore (harness, *.o, *.mod, *.dSYM)
+
+# dump sets, archives and anything array-sized: local scratch, see runs/MANIFEST.md
+pydyn_dump*/
+*.bin
+*.nc
+*.h5
+*.hdf
+results/data/
+*.egg-info/

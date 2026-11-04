@@ -1,0 +1,33 @@
+# The part of the suite that needs neither the dump sets, nor the model's input files, nor a
+# tm5-zoom checkout, nor the compiled harnesses: the property, simple-vs-fast, unit and
+# synthetic zoom tests, and lint.  The rest skips here (tests/common.py) and runs where the
+# data and the Fortran are -- the laptop, and Hercules through runs/hpc/regress_zoom.sh.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: install
+        # uv.lock's versions for this Python, the dev group (pytest, ruff) included
+        run: uv sync --locked
+      - name: lint
+        run: uv run --no-sync ruff check .
+      - name: runner
+        # runners differ in AVX-512, which conftest.py turns off; the pytest header says what ran
+        run: grep -m1 'model name' /proc/cpuinfo; grep -ow -m1 avx512f /proc/cpuinfo || echo "no avx512f"
+      - name: tests
+        # skips are expected (no data, no harness); the count that ran is the result
+        run: uv run --no-sync pytest -rs -p no:cacheprovider

@@ -1,0 +1,18 @@
+#!/bin/bash
+# arun [pytest args]: sync the local pydyn tree to Alpine, run pytest on the held slice (hold.slurm);
+# tests/test_gpu.py by default; `arun -- <command>` runs that instead (python -m pydyn.gpu.bench ...).
+# Rides the user's `ssh alpine` ControlMaster (BatchMode: no Duo).
+set -uo pipefail
+SRC=${PYDYN_SRC:-$HOME/Documents/ash-code/pydyn}
+R=${PYDYN_ALPINE_ROOT:-/projects/aspe7977/pydyn}
+F() { grep -v "consoletype\|use tty"; }
+J=$(ssh -o BatchMode=yes alpine 'squeue -u $USER -n pydyn-hold -t R -h -o %i' 2>&1 | F | head -1)
+[ -n "$J" ] || { echo "no running pydyn-hold job: sbatch $R/runs/alpine/hold.slurm"; exit 2; }
+echo "$(git -C "$SRC" rev-parse --short HEAD)$(git -C "$SRC" diff --quiet HEAD || echo +dirty)" > /tmp/arun.COMMIT.$$
+# the tree as git sees it (.gitignore keeps the Mac's harness builds home); Alpine's runs/ and stage/ stay
+rsync -az --delete --filter=':- .gitignore' --exclude .git --exclude /runs/ --exclude '/stage*' \
+  --exclude /COMMIT -e 'ssh -o BatchMode=yes' "$SRC/" alpine:$R/ 2>&1 | F
+rsync -a -e 'ssh -o BatchMode=yes' /tmp/arun.COMMIT.$$ alpine:$R/COMMIT 2>&1 | F; rm -f /tmp/arun.COMMIT.$$
+if [ "${1:-}" = -- ]; then shift; CMD=$(printf '%q ' "$@"); else
+  CMD="python -m pytest -q -rs -p no:cacheprovider $(printf '%q ' "${@:-tests/test_gpu.py}")"; fi
+ssh -o BatchMode=yes alpine "srun --jobid=$J --overlap bash -c 'source /scratch/local/pydyn-$J/env.sh && echo pydyn \$(cat COMMIT) on \$(hostname) && $CMD'" 2>&1 | F
