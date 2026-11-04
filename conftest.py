@@ -10,8 +10,9 @@ seeds 18-20 of `test_calc_kzz`.  With AVX-512 dispatch off the same three pass w
 16-ulp bound, so the difference is the dispatch, not the NumPy version (`PYD-8`).  Turning it
 off here makes the simple tier measure the transcription and nothing else.  NumPy 2.4 renamed
 the x86 targets to microarchitecture levels (X86_V3, X86_V4), so the names depend on the
-version; a name NumPy does not dispatch only draws an ImportWarning.  Set
-NPY_DISABLE_CPU_FEATURES yourself (even to "") to override.
+version, and disabling X86_V4 leaves AVX512_SPR on where a wheel dispatches it (NumPy 2.5.4's
+manylinux cp314 on a Xeon 6975P-C); a name NumPy does not dispatch only draws an ImportWarning.
+Set NPY_DISABLE_CPU_FEATURES yourself (even to "") to override.
 """
 
 import os
@@ -24,8 +25,8 @@ if platform.machine() in ("x86_64", "AMD64"):
     _numpy = tuple(int(p) for p in version("numpy").split(".")[:2])
     os.environ.setdefault(
         "NPY_DISABLE_CPU_FEATURES",
-        "X86_V4 AVX512_ICL" if _numpy >= (2, 4)
-        else "AVX512F AVX512CD AVX512_KNL AVX512_SKX AVX512_CLX AVX512_CNL AVX512_ICL",
+        "X86_V4 AVX512_ICL AVX512_SPR" if _numpy >= (2, 4)
+        else "AVX512F AVX512CD AVX512_KNL AVX512_SKX AVX512_CLX AVX512_CNL AVX512_ICL AVX512_SPR",
     )
 
 sys.path.insert(0, str(Path(__file__).parent))
