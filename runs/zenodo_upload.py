@@ -29,44 +29,34 @@ from pathlib import Path
 DESCRIPTION = """\
 <p>Model dumps that let <a href="https://github.com/pera-noaa/pydyn">pydyn</a>, a NumPy
 transcription of the TM5 transport core, be checked bitwise against the Fortran model without a
-TM5 installation. Each set is the state and inputs of every operator call of a real model run,
-written by the model's rc-gated <code>pydyn_dump</code> module: one
-<code>.meta</code> text file per event (tag, date, grid scalars, and the bounds of each array) and
-one raw little-endian, Fortran-order <code>.bin</code> per array.</p>
+TM5 installation. Each set holds the state and inputs of every operator call of a model run,
+written by its <code>pydyn_dump</code> module: a <code>.meta</code> text file per event and a
+raw little-endian, Fortran-order <code>.bin</code> per array.</p>
 <ul>
 <li><code>repin_free_745e94f70</code>: tm5-zoom <code>745e94f70</code>, glb6x4 (60 x 45 x 34
-levels), one CH4 tracer, 2000-01-01 00-23 h, transport only
-(<code>without_emission without_chemistry</code>); 483 events.
-gfortran 16.1 <code>-O3 -march=native -ffp-contract=off</code>, Accelerate LAPACK, FFTW.</li>
+levels), one CH4 tracer, 2000-01-01 00-23 h, transport only; 483 events. gfortran 16.1
+<code>-O3 -march=native -ffp-contract=off</code>, Accelerate LAPACK, FFTW.</li>
 <li><code>repin_cfl_745e94f70</code>: the same with a 10800 s step that Check_CFL rejects;
 22 events.</li>
-<li><code>zm_meteo_fixture</code>: tm5-zoom <code>397b5a2fa</code>, glb3x2 (reduced grid) +
-nam1x1 zoom, 2019-01-01, the four meteo events of both regions on rank 0 of an MPI run (ifort
-2021.12 at the production flags).</li>
+<li><code>zm_meteo_fixture</code>: tm5-zoom <code>397b5a2fa</code>, glb3x2 + nam1x1 zoom,
+2019-01-01, the four meteo events of both regions on rank 0 of an MPI run (ifort 2021.12,
+production flags).</li>
 </ul>
-<p>Every archive is a plain <code>.tar.xz</code> of whole files under its set's directory:
-<code>for f in *.tar.xz; do tar -xJf "$f"; done</code> gives the three sets back, in any order.
-<code>repin_free_745e94f70</code> is in seven, by field (<code>m</code>, <code>rm</code>,
-<code>rxm</code>, <code>rym</code>, <code>rzm</code>, <code>am-bm-cm</code>, <code>other</code>), to keep each
-near 100 MB. The arrays are near-duplicates of each other, which xz's large dictionary finds when
-each field's events are next to each other: its 3.5 GB is 654 MB.</p>
-<p>Each set also has a <code>&lt;set&gt;.config.tar.xz</code>, unpacking to
-<code>&lt;set&gt;/config/</code>, with everything needed to make it again: the rc pycasso was
-given and the rc the executable read (every key after includes and overrides: levels,
-convection and <code>lmax_conv</code> macros, meteo, time steps), the build fingerprint
-(compiler, flags, macros, overlay order), the linked libraries, the setup and build log, the
-run's log, and the recipe script; a <code>README.txt</code> in each says how they fit. Two
-changes from the files as the runs left them, both stated in that README: the rc lines naming
-colleagues' directories that the run never read (the ObsPack path, with flask output off, and
-three comments) are removed, and <code>zm_replay</code>'s rc is reconstructed from the run
-directory's surviving rc, which a later run from the same build overwrote, with the
-difference included. The model source is tm5-zoom at the commit named, not public yet; the
-meteorology and the CH4 initial field are not included.</p>
-<p>Use: <code>python3 runs/fetch_fixture.py DIR</code> in the pydyn repository, then
-<code>PYDYN_SETS=DIR uv run pytest -rs</code>. The replay and free-run tests on these sets are
-bitwise on macOS arm64 with Accelerate and Homebrew's FFTW, the libraries the glb6x4 sets were
-made with; elsewhere the CPU replays differ in the last bits (pydyn's <code>docs/state.md</code>
-section 3c). Each set's history is also in pydyn's <code>runs/MANIFEST.md</code>.</p>
+<p>Unpack every archive into one directory, in any order:
+<code>for f in *.tar.xz; do tar -xJf "$f"; done</code>. <code>repin_free_745e94f70</code> is
+split by field to keep each archive near 100 MB.</p>
+<p>Each <code>&lt;set&gt;.config.tar.xz</code> (<code>&lt;set&gt;/config/</code>) holds what
+is needed to make the set again: the rc as given and as the executable read it (every key,
+<code>lmax_conv</code> included), the build fingerprint, linked libraries, setup and run logs,
+and the recipe. Its <code>README.txt</code> states the two changes from the run's files:
+unused rc lines naming colleagues' directories are removed, and <code>zm_replay</code>'s rc is
+reconstructed, with the diff included. The tm5-zoom source (not yet public), the meteorology
+and the CH4 initial field are not included.</p>
+<p>Use: <code>python3 runs/fetch_fixture.py DIR</code> in pydyn, then
+<code>PYDYN_SETS=DIR uv run pytest -rs</code>. The tests are bitwise on macOS arm64 with
+Accelerate and Homebrew's FFTW; elsewhere the CPU replays differ in the last bits (pydyn's
+<code>docs/state.md</code> section 3c). Each set's history is in pydyn's
+<code>runs/MANIFEST.md</code>.</p>
 <p>Meteorology: ECMWF ERA5. Contains modified Copernicus Climate Change Service information
 2026. Neither the European Commission nor ECMWF is responsible for any use that may be made of
 the Copernicus information or data it contains.</p>
