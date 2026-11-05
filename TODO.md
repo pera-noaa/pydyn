@@ -26,12 +26,12 @@ refuses. Apache-2.0 (`LICENSE`, `NOTICE`), `CITATION.cff`, `CONTRIBUTING.md`, `S
 dump sets a reader without TM5 can test against are the published Zenodo fixture
 [10.5281/zenodo.23955885](https://doi.org/10.5281/zenodo.23955885) (`runs/MANIFEST.md`), each
 with the configuration that made it; fetched back anonymously with `runs/fetch_fixture.py` on
-2026-11-05, all 12 archives at their pinned SHA-256. Open:
+2026-11-05, all 12 archives at their pinned SHA-256. Zenodo's GitHub integration archives each
+release: v0.1.0 is [10.5281/zenodo.23974451](https://doi.org/10.5281/zenodo.23974451), all versions
+[10.5281/zenodo.23974450](https://doi.org/10.5281/zenodo.23974450) (`CITATION.cff`). Open:
 
 1. CI on the fixture: macOS arm64 with Homebrew FFTW running the 8 fixture tests and failing on
    any skip (the platform they are bitwise on); Linux running the device free runs.
-2. A software DOI for the code (Zenodo's GitHub integration archives each release; the
-   owner's account setting).
 
 Undecided, the owner's: whether `analysis/` and `results/` (tm5-zoom investigations, two tests
 use them) ship publicly or stay in the lab; whether outside readers get GitHub Issues in place

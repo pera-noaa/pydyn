@@ -10,7 +10,8 @@ To check the claim yourself, `uv run pytest -rs` runs whatever your machine can 
 everything it skips. The Zenodo fixture adds replays of the model's own dumps, and a tm5-zoom
 checkout at the pin adds the compiled Fortran (see "What runs where").
 
-Apache-2.0 (`LICENSE`, `NOTICE`); cite it with `CITATION.cff`; read `CONTRIBUTING.md` before a
+Apache-2.0 (`LICENSE`, `NOTICE`); cite it with `CITATION.cff` (every release is archived at
+[10.5281/zenodo.23974450](https://doi.org/10.5281/zenodo.23974450)); read `CONTRIBUTING.md` before a
 change, `SECURITY.md` for what it trusts and how to report a vulnerability, `CHANGELOG.md` for
 releases.
 
