@@ -6,7 +6,7 @@
 Scans every file git tracks in DIR (text files only).  What it refuses:
 
   claude      a file named CLAUDE.md / CLAUDE.local.md anywhere, or text citing one
-  laptop      a /Users/ path outside runs/MANIFEST.md (whose provenance names the laptop's)
+  laptop      a /Users/ path anywhere (write the home directory as $HOME)
   username    a cluster username in a path: CU identikeys (/projects/abcd1234), NOAA
               First.Last homes, any /home/<name> other than $USER
   token       GitHub, Slack, AWS, OpenAI-style keys, private keys, Bearer values, .netrc
@@ -30,7 +30,6 @@ EMAILS = {"ashley.pera@noaa.gov"}
 HOSTS = {"github.com", "zenodo.org", "sandbox.zenodo.org", "doi.org", "orcid.org", "pypi.org",
          "files.pythonhosted.org", "www.apache.org", "noaa.gov"}  # fmt: skip
 SELF = {"runs/leak_scan.py", "runs/export_public.sh", "tests/test_export_public.py"}
-LAPTOP_OK = {"runs/MANIFEST.md"}
 
 TOKENS = [
     re.compile(r"gh[pousr]_[A-Za-z0-9]{30,}"),
@@ -78,7 +77,7 @@ def scan_text(path, text):
             continue
         if "CLAUDE.md" in line or "CLAUDE.local.md" in line:
             hits.append(("claude", n, "CLAUDE.md"))
-        if "/Users/" in line and path not in LAPTOP_OK:
+        if "/Users/" in line:
             hits.append(("laptop", n, line.strip()[:80]))
         for rx in USERNAMES:
             hits += [("username", n, m.group(0)) for m in rx.finditer(line)]

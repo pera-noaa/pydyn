@@ -30,18 +30,18 @@ from pathlib import Path
 
 RECORD = "23955885"  # 10.5281/zenodo.23955885
 SHA256 = {  # the published record's archives, from the files uploaded (runs/pack_fixture.py)
-    "repin_cfl_745e94f70.config.tar.xz": "d0ab97523fecd64201e7bb024cb379c561ff976e819bf07452add1e3da9bb0dd",
+    "repin_cfl_745e94f70.config.tar.xz": "1865b953d223cb3c3e45c25746654d3a1695e5e94478ebdcb0d75d233ccf94c0",
     "repin_cfl_745e94f70.tar.xz": "912dfc986cca08d6a34f3d733919269c615f4e1ecb2216a85a02a4afe090169d",
     "repin_free_745e94f70.am-bm-cm.tar.xz":
         "d9f7c87ba859b805180935c84125ce8faf2013717334e0e5955a5dde5eac64e0",
-    "repin_free_745e94f70.config.tar.xz": "9d4be50bd462e431377ecc6973af079a4296c80ec9eb17864f52111c642ef551",
+    "repin_free_745e94f70.config.tar.xz": "e209d5ad66c4947851f1a1c5263e3814539d45dc7d8bbf661d7e1abc29ef7fb2",
     "repin_free_745e94f70.m.tar.xz": "785bf657d4d4a17ee68da09521237ca6510e393ff3a9b55415429519b622416f",
     "repin_free_745e94f70.other.tar.xz": "f01ac4a14c94f082711172e0206c21cd6aae6c6c064110464d57d4dce71f3221",
     "repin_free_745e94f70.rm.tar.xz": "8e3c86f88f3626c6928cef909ea8b422a0fbbff2b41c3309560b69c6741fd30f",
     "repin_free_745e94f70.rxm.tar.xz": "3c902cef8b08d21d76ab5177e2c2583b485e8aaf0409c80c09c4b21d47ad8ac2",
     "repin_free_745e94f70.rym.tar.xz": "a86efb313030262ef1a43e306446dd5c4376713997aa02edb6b9e936c05cfe7a",
     "repin_free_745e94f70.rzm.tar.xz": "a07667c394faf92596193a07ace931e092cd3917e14757c12b923efb6994ca39",
-    "zm_meteo_fixture.config.tar.xz": "a32b33f978b1f40857d147005dcd1c2de265758d4c2b93eb4f8305f1221cfa35",
+    "zm_meteo_fixture.config.tar.xz": "9a5220c18a3a542c23338441c295ef49f4c27dbbc8489e2c18812e96fb52be85",
     "zm_meteo_fixture.tar.xz": "992799184853323db4fad5df4b3a2649b520b45e7d8ccd8c2c8809575f8b1a5c",
 }
 NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")

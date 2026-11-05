@@ -38,7 +38,7 @@ def repos(tmp_path):
     (lab / "CLAUDE.md").write_text("lab notes\n")
     (lab / "sub").mkdir()
     (lab / "sub" / "CLAUDE.md").write_text("nested lab notes\n")
-    (lab / "runs" / "MANIFEST.md").write_text("made in /Users/someone/tm5-zoom\n")
+    (lab / "runs" / "MANIFEST.md").write_text("made in $HOME/tm5-zoom\n")
     git(tmp_path, "init", "-q", "-b", "master", str(lab))
     commit_all(lab)
     git(tmp_path, "init", "-q", "--bare", "-b", "main", str(origin))
@@ -84,6 +84,7 @@ def test_without_a_message_stages_only(repos):
 @pytest.mark.parametrize("path, text, why", [
     ("docs.md", "see CLAUDE" + ".md for the rules\n", "claude"),
     ("notes.md", "data in /Us" + "ers/someone/scratch\n", "laptop"),
+    ("runs/MANIFEST.md", "made in /Us" + "ers/someone/tm5-zoom\n", "laptop"),
     ("key.txt", "gh" + "p_" + "a" * 36 + "\n", "token"),
     ("zenodo.txt", "token = " + _token() + "\n", "token"),
     ("aws.txt", "AK" + "IA" + "ABCDEFGHIJKLMNOP\n", "token"),

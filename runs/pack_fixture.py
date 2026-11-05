@@ -20,8 +20,8 @@ next), so the compression is in matching them, and gzip's 32 KB window never see
 xz -9's 64 MB dictionary does, more so with each field's events next to each other:
 repin_free_745e94f70's 3.5 GB is 2.68 GB as tar.gz, 808 MB as tar.xz in name order, 654 MB in
 field order; the tracer and its slopes are most of what is left (rm..rzm 100-110 MB each, the
-mass fluxes 5% of raw).  `tar -xJf` and Python's tarfile both read it.  Run logs are left out.
-Needs xz.
+mass fluxes 5% of raw).  `tar -xJf` and Python's tarfile both read it.  Run logs are left out,
+and so are owner names (--numeric-owner).  Needs xz.
 """
 
 import re
@@ -53,8 +53,8 @@ def config(root, name):
 def pack(root, target, name, files):
     listing = "".join(f"{name}/{f.relative_to(root / name).as_posix()}\n" for f in files).encode()
     with open(target, "wb") as f:
-        tar = subprocess.Popen(["tar", "-cf", "-", "-T", "-"], cwd=root, stdin=subprocess.PIPE,
-                               stdout=subprocess.PIPE)
+        tar = subprocess.Popen(["tar", "--numeric-owner", "-cf", "-", "-T", "-"], cwd=root,
+                               stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         xz = subprocess.Popen(["xz", "-9", "-T0"], stdin=tar.stdout, stdout=f)
         tar.stdout.close()
         tar.stdin.write(listing)

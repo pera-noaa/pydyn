@@ -44,8 +44,8 @@ build compiled the live checkout into `.tm5-cloud-scratch/ash/unified-testing/ch
 and replaced its executable, `run/ch4u-6x4-test.rc`, `Makefile`, `submit_tm5` and
 `build_local-mac_gfortran_default_real8_optim-fast/` (including `build_fingerprint.txt`). The
 dump sets are separate directories and untouched, as are `run/tm5.log` and `run/tm5.ok`. What
-the lost rc said, as read before the overwrite: `my.gitroot /Users/pera/tm5-zoom`,
-`MAC_PREFIX /opt/anaconda3`, HDF4 from `/Users/pera/Documents/local-tm5/.tm5-local/hdf4`,
+the lost rc said, as read before the overwrite: `my.gitroot $HOME/tm5-zoom`,
+`MAC_PREFIX /opt/anaconda3`, HDF4 from `$HOME/Documents/local-tm5/.tm5-local/hdf4`,
 `optim-fast = -O3 -march=native -ffp-contract=off`, `compiler.lib.lapack.libs = -framework
 Accelerate -L/opt/homebrew/lib -lfftw3`, macros `with_hdf4 with_hdf5_par with_netcdf4
 with_netcdf4_par with_udunits2 with_io_server_staging slopes with_pycasso with_tmm_tm5

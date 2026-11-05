@@ -50,8 +50,9 @@ split by field to keep each archive near 100 MB.</p>
 <p>Each <code>&lt;set&gt;.config.tar.xz</code> (<code>&lt;set&gt;/config/</code>) holds what
 is needed to make the set again: the rc as given and as the executable read it (every key,
 <code>lmax_conv</code> included), the build fingerprint, linked libraries, setup and run logs,
-and the recipe. Its <code>README.txt</code> states the two changes from the run's files:
-unused rc lines naming colleagues' directories are removed, and <code>zm_replay</code>'s rc is
+and the recipe. Its <code>README.txt</code> states the changes from the run's files: unused rc
+lines naming colleagues' directories are removed, the home directory and an account name are
+written <code>$HOME</code> and <code>$USER</code>, and <code>zm_replay</code>'s rc is
 reconstructed, with the diff included. The rc files are TM5's configuration: this record's
 CC-BY-4.0 licence does not cover them, and their terms are TM5's. The tm5-zoom source (not yet
 public), the meteorology and the CH4 initial field are not included.</p>
