@@ -50,8 +50,9 @@ is needed to make the set again: the rc as given and as the executable read it (
 <code>lmax_conv</code> included), the build fingerprint, linked libraries, setup and run logs,
 and the recipe. Its <code>README.txt</code> states the two changes from the run's files:
 unused rc lines naming colleagues' directories are removed, and <code>zm_replay</code>'s rc is
-reconstructed, with the diff included. The tm5-zoom source (not yet public), the meteorology
-and the CH4 initial field are not included.</p>
+reconstructed, with the diff included. The rc files are TM5's configuration: this record's
+CC-BY-4.0 licence does not cover them, and their terms are TM5's. The tm5-zoom source (not yet
+public), the meteorology and the CH4 initial field are not included.</p>
 <p>Use: <code>python3 runs/fetch_fixture.py DIR</code> in pydyn, then
 <code>PYDYN_SETS=DIR uv run pytest -rs</code>. The tests are bitwise on macOS arm64 with
 Accelerate and Homebrew's FFTW; elsewhere the CPU replays differ in the last bits (pydyn's
@@ -66,7 +67,7 @@ METADATA = {
     "title": "pydyn fixture: TM5 transport dumps for bitwise checks",
     "upload_type": "dataset",
     "description": DESCRIPTION,
-    "creators": [{"name": "Pera, Ash",
+    "creators": [{"name": "Pera, Ash", "orcid": "0009-0002-9019-279X",
                   "affiliation": "CIRES, University of Colorado Boulder; NOAA Global Monitoring Laboratory"}],
     "license": "cc-by-4.0",
     "version": "1",
