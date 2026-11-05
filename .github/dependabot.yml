@@ -1,0 +1,19 @@
+# Actions are pinned to exact releases (setup-uv has no moving major tag), so updates come here.
+# uv.lock's versions are the ones the bitwise results are measured under: a bump is a PR whose
+# CI run is the check, monthly and grouped so one NumPy move is one PR.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      python:
+        patterns: ["*"]

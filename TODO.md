@@ -17,6 +17,27 @@ landed in `TODO.history.md`.
 
 ## Open
 
+### PYD-17. The public release  [U:3 F:4 E:M]
+
+`pera-noaa/pydyn` (private until the owner says otherwise) is the release, one commit per
+export of this repo's HEAD, made by `runs/export_public.sh`; its header says what it leaves
+out and what it refuses. Apache-2.0 (`LICENSE`, `NOTICE`), `CITATION.cff`, `CONTRIBUTING.md`; installed with uv,
+not on PyPI. The three dump sets a reader without TM5 can test against are the Zenodo fixture
+[10.5281/zenodo.23955885](https://doi.org/10.5281/zenodo.23955885) (`runs/MANIFEST.md`), each
+with the configuration that made it. Open, in order:
+
+1. Publish the Zenodo record (the owner's click), then fetch it back with
+   `runs/fetch_fixture.py` and diff against the sources.
+2. CI on the fixture: macOS arm64 with Homebrew FFTW running the 8 fixture tests and failing on
+   any skip (the platform they are bitwise on); Linux running the device free runs.
+3. Make the repository public (the owner's decision), tag `v0.1.0`, and a GitHub release
+   (a software DOI if Zenodo's GitHub integration is on).
+
+Undecided, the owner's: whether `analysis/` and `results/` (tm5-zoom investigations, two tests
+use them) ship publicly or stay in the lab; whether outside readers get GitHub Issues in place
+of this file; the default paths in `tests/common.py` assume the maintainer's layout
+(`.tm5-cloud-scratch`), which the `PYDYN_*` variables override.
+
 ### PYD-5. The isotope and `with_budgets` chemistry paths  [U:2 F:3 E:M]
 
 `chem.py` is the CH4-only path of `ch4_chemistry_step`. The d13C / δD tracers and the budget
@@ -202,7 +223,7 @@ in `TODO.history.md`; the run and its result are `cfl_headroom.md` §14.
 (§9 makes that sharper rather than softer: the real kernel's refusals are all in **y**).
 Not answerable from §12's pair: whether the *mean* shift is toward the truth (§14).
 
-### PYD-8. Package the repo properly  [DONE 2026-09-28; CI 2026-10-14, its x86 dispatch pin fixed for NumPy 2.4+ 2026-11-03]  [U:2 F:4 E:S]
+### PYD-8. Package the repo properly  [DONE 2026-09-28; CI 2026-11-03]  [U:2 F:4 E:S]
 
 **The Orion failures were NumPy's SIMD dispatch, not its version.** `test_calc_kzz` at seeds
 18-20 failed on Orion (NumPy 2.0.2, Xeon Gold 6148) by up to 782 ulp in `dkg`, where the
@@ -219,11 +240,12 @@ paths in the pytest header, so every run records the condition it held under. Or
 `pyproject.toml`: `pip install -e .` works (checked in a throwaway venv), `numpy>=1.26`, no
 upper pin, `testpaths`; `ruff.toml` stays the lint config.
 
-**CI, 2026-10-14:** `.github/workflows/tests.yml` runs `ruff check` and the suite on Python 3.9
-and 3.12 on every push and pull request. With no dumps, no tm5-zoom checkout and no compiled
-harness, 118 of 431 run and the rest skip by `tests/common.py`'s rules (checked locally on a
-`git archive` with `PYDYN_TM5ZOOM` unset). **Unverified:** the repo is private and its Actions
-runs were not visible from here; the first run's result is the residue.
+**CI** (`.github/workflows/tests.yml`, `ubuntu-24.04`): `ruff check` and the suite on every
+push and pull request, on Python 3.10, 3.12 and 3.14 at `uv.lock`'s versions and on 3.10 at
+`--resolution lowest-direct` (NumPy 1.26.0, the declared floor). With no dumps, no tm5-zoom
+checkout and no compiled harness, 175 tests run and the rest skip by `tests/common.py`'s rules.
+Green on `pera-noaa/pydyn`. Dependabot proposes the Actions and `uv.lock` updates, each a PR
+whose CI run is the check. The sdist carries `tests/` and the root `conftest.py` (`MANIFEST.in`).
 
 ### PYD-1. Redo the optimisation and FMA measurement with ifort  [DONE 2026-09-24, Orion's build]  [U:4 F:3 E:M]
 
@@ -318,8 +340,8 @@ withdrawn four days later (`5b8aaedda` → `a3d6cbac5` → `f43779a8a` → `ec70
 `ops.ONE = 1.0` mirrors the right thing. Corrected in tm5-zoom at `f8abba4c5`, doc-only,
 with a second stale claim in the same list; the table is in `docs/cfl_headroom.md` §5.
 
-**Residue.** The guard runs only where a checkout is present, so it protects a developer,
-not CI. Folded into `PYD-8`, which is where a CI story would start.
+**Residue.** The guard runs only where a tm5-zoom checkout is present, so it protects a
+developer, not CI: CI has no checkout (`PYD-8`).
 
 ## Parked
 

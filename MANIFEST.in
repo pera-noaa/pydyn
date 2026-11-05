@@ -1,0 +1,2 @@
+# The sdist carries tests/ (setuptools' default); conftest.py pins NumPy's SIMD dispatch for them.
+include conftest.py

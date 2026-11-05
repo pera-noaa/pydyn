@@ -394,3 +394,16 @@ and what it costs there.
    §6), and the device's interval is GPU-bound there (box dispatches, convection's passes, z,
    loss rates: §7). float32 chemistry's `rm * decay` rounding (-4.8e-8 of the tracer a day,
    §8) is measured, not fixed.
+
+## PYD-8's CI paragraph and PYD-12's residue before the public release (`TODO.md` at pydyn `39f9df6`)
+
+### PYD-8. Package the repo properly  [DONE 2026-09-28; CI 2026-10-14, its x86 dispatch pin fixed for NumPy 2.4+ 2026-11-03]  [U:2 F:4 E:S]
+
+**CI, 2026-10-14:** `.github/workflows/tests.yml` runs `ruff check` and the suite on Python 3.9
+and 3.12 on every push and pull request. With no dumps, no tm5-zoom checkout and no compiled
+harness, 118 of 431 run and the rest skip by `tests/common.py`'s rules (checked locally on a
+`git archive` with `PYDYN_TM5ZOOM` unset). **Unverified:** the repo is private and its Actions
+runs were not visible from here; the first run's result is the residue.
+
+**Residue.** The guard runs only where a checkout is present, so it protects a developer,
+not CI. Folded into `PYD-8`, which is where a CI story would start.

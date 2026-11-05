@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     name: py${{ matrix.python-version }} ${{ matrix.resolution || 'locked' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # not -latest: a runner image change should arrive as a commit, not move numbers
     strategy:
       fail-fast: false
       matrix:

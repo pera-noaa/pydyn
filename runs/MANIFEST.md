@@ -4,6 +4,12 @@ One row per `pydyn_dump` set. Each is produced by a TM5 run with `pydyn.dump : T
 the model sha, the build flags and the rc it came from; the flags are part of the claim,
 because `-ffp-contract=off` is what makes the comparison bitwise (`docs/state.md` §3c).
 
+**Published:** `repin_free_745e94f70`, `repin_cfl_745e94f70` and `zm_meteo_fixture` are the
+Zenodo fixture, [10.5281/zenodo.23955885](https://doi.org/10.5281/zenodo.23955885), each with
+a `config/` folder (the rc the model read, the build fingerprint, the logs, the recipe):
+`runs/pack_fixture.py` made it, `runs/fetch_fixture.py` fetches it. No other set below is
+published.
+
 **The dumps themselves are scratch and are not in this repo.** The laptop sets live under
 `$PYDYN_TM5ZOOM/.tm5-cloud-scratch/` (default `../tm5-zoom`) and are regenerated from the recipe
 in `docs/state.md` §3b rather than archived; the Orion and Hercules sets under
