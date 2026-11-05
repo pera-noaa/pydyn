@@ -18,7 +18,7 @@ spec.loader.exec_module(ff)
 
 
 def _archive(path, members):
-    with tarfile.open(path, "w:gz") as tar:
+    with tarfile.open(path, f"w:{path.suffix[1:]}") as tar:  # .xz as the fixture, .gz still read
         for name, data in members.items():
             info = tarfile.TarInfo(name)
             info.size = len(data)
@@ -26,13 +26,14 @@ def _archive(path, members):
     return hashlib.md5(path.read_bytes()).hexdigest()
 
 
-@pytest.fixture
-def record(tmp_path):
+@pytest.fixture(params=["xz", "gz"])
+def record(tmp_path, request):
     src = tmp_path / "zenodo"
     src.mkdir()
+    name = f"setA.tar.{request.param}"
     members = {"setA/e00001_meteo.meta": b"tag = meteo\n", "setA/e00001_m.bin": b"\0" * 8}
-    md5 = _archive(src / "setA.tar.gz", members)
-    return src, [("setA.tar.gz", (src / "setA.tar.gz").as_uri(), md5)]
+    md5 = _archive(src / name, members)
+    return src, [(name, (src / name).as_uri(), md5)]
 
 
 def test_unpacks_at_the_records_md5(tmp_path, record):
@@ -58,15 +59,25 @@ def test_an_archive_at_the_md5_is_not_downloaded_again(tmp_path, record, monkeyp
 def test_a_wrong_archive_in_place_is_replaced(tmp_path, record):
     _, files = record
     (tmp_path / "out").mkdir()
-    (tmp_path / "out" / "setA.tar.gz").write_bytes(b"truncated")
+    (tmp_path / "out" / files[0][0]).write_bytes(b"truncated")
     ff.fetch(files, tmp_path / "out")
     assert (tmp_path / "out" / "setA" / "e00001_m.bin").stat().st_size == 8
 
 
+def test_nothing_is_unpacked_until_every_md5_checks(tmp_path, record):
+    src, files = record
+    other = src / "setB.tar.xz"
+    _archive(other, {"setB/e00001_m.bin": b"\0" * 8})
+    with pytest.raises(SystemExit, match=r"setB\.tar\.xz: md5"):
+        ff.fetch([*files, (other.name, other.as_uri(), "0" * 32)], tmp_path / "out")
+    assert not (tmp_path / "out" / "setA").exists()
+
+
 @pytest.mark.skipif(not hasattr(tarfile, "data_filter"), reason="no tarfile extraction filter before 3.10.12")
 def test_refuses_a_member_outside_dir(tmp_path):
-    src = tmp_path / "evil.tar.gz"
+    src = tmp_path / "evil.tar.xz"
     md5 = _archive(src, {"../escaped": b"x"})
     with pytest.raises(tarfile.FilterError):
-        ff.fetch([("evil.tar.gz", src.as_uri(), md5)], tmp_path / "out")
+        ff.fetch([(src.name, src.as_uri(), md5)], tmp_path / "out")
     assert not (tmp_path / "escaped").exists()
+

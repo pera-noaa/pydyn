@@ -17,3 +17,10 @@ keywords:
   - atmospheric transport
   - reference implementation
   - bitwise reproducibility
+references:
+  - type: dataset
+    title: "pydyn fixture: TM5 transport dumps for bitwise checks"
+    authors:
+      - family-names: Pera
+        given-names: Ash
+    doi: 10.5281/zenodo.23955885
