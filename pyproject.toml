@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=77"]  # PEP 639 license fields
+requires = ["setuptools>=84.2.1"]  # PEP 639 license fields
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -41,7 +41,7 @@ packages = ["pydyn", "pydyn.zoom", "pydyn.gpu"]
 cuda = ["cupy-cuda12x"]  # pydyn.gpu's cuda backend; emu needs only a C++ compiler
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff==0.17.1"]  # `uv sync` installs it; pip >= 25.1: `pip install -e . --group dev`
+dev = ["pytest>=8", "ruff==0.17.3"]  # `uv sync` installs it; pip >= 25.1: `pip install -e . --group dev`
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
