@@ -1,0 +1,9 @@
+# The sdist carries tests/ (setuptools' default), and what they import or read beside it:
+# conftest.py (NumPy's SIMD dispatch, the header), tests/common.py, the NVRTC stub header,
+# fortran/TM5ZOOM_PIN, and runs/ and analysis/ (test_fetch_fixture, test_export_public and
+# test_zoom_census load scripts from them).  The wheel is pydyn/ alone.
+include conftest.py fortran/TM5ZOOM_PIN tests/common.py tests/nvrtc_stub.h
+include CHANGELOG.md CITATION.cff CONTRIBUTING.md SECURITY.md
+graft runs
+graft analysis
+global-exclude __pycache__ *.py[co]

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=77"]  # PEP 639 license fields
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tm5-pydyn"  # the import name is pydyn; "pydyn" on PyPI is an unrelated project
+version = "0.1.0"
+description = "Serial NumPy reference of the TM5 dynamic core, bitwise equal to the production Fortran under stated flags and libraries"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Ash Pera" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",  # the versions CI runs (tests.yml)
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
+requires-python = ">=3.10"
+# The bitwise results are measured under NumPy 1.26.4 and 2.5.4 (arm64 laptop; 2.5.4 is uv.lock's)
+# and 2.0.2 (Orion, x86-64);
+# docs/state.md section 3c says which claim holds where.  No upper pin: CI checks a NumPy change
+# only with what runs without TM5 (the device kernels against the NumPy reference among it; no
+# Fortran, dump or constants test), so a bump is run here on the full suite too; conftest.py
+# prints the version and SIMD paths it ran on.
+dependencies = ["numpy>=1.26", "netCDF4>=1.7"]  # netCDF4: the input files (meteo, emis, chemfields, initial)
+
+[project.scripts]
+pydyn-replay = "pydyn.replay:main"  # python -m pydyn.replay
+
+[project.urls]
+Repository = "https://github.com/pera-noaa/pydyn"
+Issues = "https://github.com/pera-noaa/pydyn/issues"
+
+[tool.setuptools]
+packages = ["pydyn", "pydyn.zoom", "pydyn.gpu"]
+
+[tool.setuptools.package-data]
+"pydyn.gpu" = ["csrc/*"]  # the kernel source, compiled at first use (NVRTC, or the host compiler for emu)
+
+[project.optional-dependencies]
+cuda = ["cupy-cuda12x"]  # pydyn.gpu's cuda backend; emu needs only a C++ compiler
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff==0.17.1"]  # `uv sync` installs it; pip >= 25.1: `pip install -e . --group dev`
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

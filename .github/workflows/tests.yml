@@ -1,0 +1,47 @@
+# The part of the suite that needs neither the dump sets, nor the model's input files, nor a
+# tm5-zoom checkout, nor the compiled harnesses: the property, simple-vs-fast, unit and
+# synthetic zoom tests, and lint.  The rest skips here (tests/common.py) and runs where the
+# data and the Fortran are -- the laptop, and Hercules through runs/hpc/regress_zoom.sh.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read  # the token can read the code and nothing else
+
+jobs:
+  test:
+    name: py${{ matrix.python-version }} ${{ matrix.resolution || 'locked' }}
+    runs-on: ubuntu-24.04  # not -latest: a runner image change should arrive as a commit, not move numbers
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.10"
+          - python-version: "3.12"
+          - python-version: "3.14"
+          # the oldest versions pyproject.toml admits (numpy 1.26.0, the first netCDF4 1.7 wheel), not the lock's
+          - python-version: "3.10"
+            resolution: lowest-direct
+    steps:
+      # pinned by commit, not by a tag that can be moved; Dependabot updates both
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false  # the token is not left in .git/config for the build
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: install
+        # uv.lock's versions for this Python, the dev group (pytest, ruff) included
+        run: uv sync ${{ matrix.resolution && format('--resolution {0}', matrix.resolution) || '--locked' }}
+      - name: lint
+        run: uv run --no-sync ruff check .
+      - name: runner
+        # runners differ in AVX-512, which conftest.py turns off; the pytest header says what ran
+        run: grep -m1 'model name' /proc/cpuinfo; grep -ow -m1 avx512f /proc/cpuinfo || echo "no avx512f"
+      - name: tests
+        # skips are expected (no data, no harness); the count that ran is the result
+        run: uv run --no-sync pytest -rs -p no:cacheprovider

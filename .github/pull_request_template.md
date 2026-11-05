@@ -1,0 +1,4 @@
+- [ ] `ruff check .` is clean
+- [ ] the full suite ran locally (CI has no Fortran or dump-set test): passed / skipped counts here
+- [ ] a reference kernel's device twin in `pydyn/gpu/csrc/` changed with it, if any
+- [ ] a new constant has a row or a waiver in `tests/test_constants.py`

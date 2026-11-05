@@ -1,0 +1,8 @@
+pydyn
+Copyright 2026 The Regents of the University of Colorado, a body corporate.
+Written by Ash Pera (CIRES, University of Colorado Boulder, at the NOAA Global Monitoring
+Laboratory).
+
+This product is a transcription of the transport core of TM5, the atmospheric
+chemistry-transport model, and its tests compile TM5's Fortran kernels from a separate
+checkout. TM5 is not distributed with this product and is covered by its own terms.

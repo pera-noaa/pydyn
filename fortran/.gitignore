@@ -1,0 +1,9 @@
+harness
+harness_*
+!harness_*.F90
+*.o
+*.mod
+*.dSYM/
+build/
+build-zoom*/
+*.tm5zoom
