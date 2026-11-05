@@ -33,7 +33,8 @@ initial tracer field. Algorithm: `tm5-zoom@4dc2017c5:docs/dynamic_core_survey.md
 Two conditions on that word: the build must not contract (`-ffp-contract=off`, or ifort's
 `-fp-model precise -no-fma`), and the FFT, LAPACK and libm calls are bitwise only through the
 model's own libraries, which the Python calls through ctypes (§3c). Constants are checked on
-their own terms (§4). `runs/MANIFEST.md` has a row for every dump set. `pydyn.gpu`, the same
+their own terms (§4). `runs/MANIFEST.md` has a row for every dump set; three are published
+as a Zenodo fixture (§3b). `pydyn.gpu`, the same
 core with the state on a GPU, is held bitwise to this reference (float64: `emu`, `cuda`) or to
 its float32 host twin (Metal on Apple silicon, 15.6 simulated years an hour for a glb3x2 +
 nam1x1 interval); `pydyn/forward.py` runs from the input files alone, bitwise these dumps on
@@ -335,6 +336,13 @@ looks for the three sets made at the pin,
 what is absent; a 23 h replay or
 free run takes ~20 s.
 
+**Published.** `repin_free_745e94f70`, `repin_cfl_745e94f70` and §3f's `zm_meteo_fixture` are
+the Zenodo fixture, [10.5281/zenodo.23955885](https://doi.org/10.5281/zenodo.23955885), each
+with the configuration that made it (`runs/MANIFEST.md`): `python3 runs/fetch_fixture.py DIR`,
+then `PYDYN_SETS=DIR`. `repin_phys_745e94f70` is not published, so the per-event and
+input-file tests on it skip without a model run of your own. The fixture's tests are bitwise on
+macOS arm64 with Accelerate and Homebrew's FFTW; elsewhere see §3c, the model's own libraries.
+
 ### 3c. What can and cannot be bit-identical
 
 - **The flags.** `optim-fast` is not one thing: Orion's is `-O3 -xHost -g -fp-model precise
@@ -371,6 +379,12 @@ free run takes ~20 s.
   chemistry's OH and Cl rates are 2–3 ulp off. ifort also compiles an integer power `x**3`
   (Calc_Kzz's `ustr**3`) to libimf's `__powr8i4`, 1 ulp from `(x*x)*x` on a quarter of values,
   which `dkg` amplified to 557 ulp; `ops.libm.cube` calls it (`**2` ifort inlines as `x*x`).
+  The same holds across machines: the laptop sets replayed on Linux x86-64 (Alpine, byte-identical
+  copies; `runs/MANIFEST.md`) put `test_production`'s meteo and `v` checks 1e-12 to 2e-10
+  relative off, because that system's FFTW and LAPACK are not the Mac's the sets were made with,
+  while the device free runs, which carry their own twins of those libraries, stayed bitwise.
+  A replay is bitwise to the build whose libraries it loads, so a failure there on another
+  platform is that, not a regression.
 - **NumPy.** Elementwise ops are IEEE double per element with no reassociation, so matching the
   source's parenthesisation is enough; `np.sum`/`np.dot` are *not* sequential, so `pit`, `zrm`
   and `fastminv` are written as accumulation loops. Its vectorised transcendentals depend on the

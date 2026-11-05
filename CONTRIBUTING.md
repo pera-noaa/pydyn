@@ -17,6 +17,15 @@ nothing about bitwise. `PYDYN_SETS=DIR` with the Zenodo fixture (`runs/fetch_fix
 adds the transport replays; `tests/common.py` lists every path a test looks for and its
 `PYDYN_*` variable.
 
+The fixture's tests are bitwise on macOS arm64 with Accelerate and Homebrew's FFTW, the
+libraries the sets were made with. On Linux, `test_production`'s meteo and convection (`v`)
+checks **fail** at 1e-12 to 2e-10 relative on an unchanged tree, because the replay loads that
+system's FFTW and LAPACK (`docs/state.md` §3c); the device free runs stay bitwise. Compare
+against a run of the same tests before your change, not against zero failures.
+
+A Dependabot pull request that bumps `uv.lock` is a NumPy (or netCDF4) change: read the test
+count and the `numpy ... SIMD dispatched` line in the pytest header, not only the colour.
+
 ## Rules
 
 - **Bitwise is a claim about flags.** Any statement that Python and Fortran agree carries the
