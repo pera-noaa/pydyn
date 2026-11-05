@@ -341,8 +341,7 @@ free run takes ~20 s.
 **Published.** `repin_free_745e94f70`, `repin_cfl_745e94f70` and §3f's `zm_meteo_fixture` are
 the Zenodo fixture, [10.5281/zenodo.23955885](https://doi.org/10.5281/zenodo.23955885), each
 with the configuration that made it (`runs/MANIFEST.md`): `python3 runs/fetch_fixture.py DIR`,
-then `PYDYN_SETS=DIR` (the record is a draft until the v0.1.0 release; until then the script
-says the record is not found). `repin_phys_745e94f70` is not published, so the per-event and
+then `PYDYN_SETS=DIR`. `repin_phys_745e94f70` is not published, so the per-event and
 input-file tests on it skip without a model run of your own. The fixture's tests are bitwise on
 macOS arm64 with Accelerate and Homebrew's FFTW, measured on one machine: an Apple M4 on macOS
 15.8.1, where the sets were made and the tests were last run on them (2026-11). Elsewhere see

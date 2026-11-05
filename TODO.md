@@ -19,25 +19,19 @@ landed in `TODO.history.md`.
 
 ### PYD-17. The public release  [U:3 F:4 E:M]
 
-`pera-noaa/pydyn` (private until the owner says otherwise) is the release, one commit per
-export of this repo's HEAD, made by `runs/export_public.sh`; its header says what it leaves
-out and what it refuses. Apache-2.0 (`LICENSE`, `NOTICE`), `CITATION.cff`, `CONTRIBUTING.md`; installed with uv,
-not on PyPI. The three dump sets a reader without TM5 can test against are the Zenodo fixture
+`pera-noaa/pydyn` is public and released as `v0.1.0` (2026-11-05): one commit per export of this
+repo's HEAD, made by `runs/export_public.sh`, whose header says what it leaves out and what it
+refuses. Apache-2.0 (`LICENSE`, `NOTICE`), `CITATION.cff`, `CONTRIBUTING.md`, `SECURITY.md`
+(private vulnerability reporting is on); installed with uv from the tag, not on PyPI. The three
+dump sets a reader without TM5 can test against are the published Zenodo fixture
 [10.5281/zenodo.23955885](https://doi.org/10.5281/zenodo.23955885) (`runs/MANIFEST.md`), each
-with the configuration that made it. Open, in order:
+with the configuration that made it; fetched back anonymously with `runs/fetch_fixture.py` on
+2026-11-05, all 12 archives at their pinned SHA-256. Open:
 
-1. Publish the Zenodo record (the owner's click), then fetch it back with
-   `runs/fetch_fixture.py` and diff against the sources, and drop "a draft until the v0.1.0
-   release" from `README.md` ("What runs where") and `docs/state.md` §3b.
-2. CI on the fixture: macOS arm64 with Homebrew FFTW running the 8 fixture tests and failing on
+1. CI on the fixture: macOS arm64 with Homebrew FFTW running the 8 fixture tests and failing on
    any skip (the platform they are bitwise on); Linux running the device free runs.
-3. Recreate `pera-noaa/pydyn` with one fresh commit (an earlier export's history named a
-   cluster username, and GitHub keeps pull-request refs the owner cannot delete): delete the
-   repository, create it empty, push the prepared single-commit `main`.
-4. Make the repository public (the owner's decision); turn on private vulnerability reporting
-   (`SECURITY.md` points at it); tag `v0.1.0`, date the `CHANGELOG.md` entry, add
-   `date-released` to `CITATION.cff`, and a GitHub release (a software DOI if Zenodo's GitHub
-   integration is on).
+2. A software DOI for the code (Zenodo's GitHub integration archives each release; the
+   owner's account setting).
 
 Undecided, the owner's: whether `analysis/` and `results/` (tm5-zoom investigations, two tests
 use them) ship publicly or stay in the lab; whether outside readers get GitHub Issues in place

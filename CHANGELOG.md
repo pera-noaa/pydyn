@@ -2,7 +2,7 @@
 
 One entry per release. Commit history is the detail; this is what a user needs to know.
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-11-05)
 
 First public release.
 
