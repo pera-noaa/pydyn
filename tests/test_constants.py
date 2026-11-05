@@ -26,7 +26,9 @@ Three ways this file fails, and all three are the point:
   not accounted for a new module-level numeric constant appeared in `pydyn/` and is in
                     neither `CONSTANTS` nor `WAIVED`, so nobody has said where it comes from
 
-Skipped as a whole only when there is no checkout to read.  `PYD-12`.
+The tests that read the Fortran skip without a checkout; the accounting test and the device
+cap's (`csrc/pd.h`) need none and run everywhere, CI included.  The conftest header says
+whether the checkout is at the pin (fortran/TM5ZOOM_PIN).  `PYD-12`.
 """
 
 import ast
@@ -41,7 +43,7 @@ import pydyn
 
 from common import TM5ZOOM
 
-pytestmark = pytest.mark.skipif(
+needs_checkout = pytest.mark.skipif(
     not TM5ZOOM.is_dir(), reason=f"no tm5-zoom checkout at {TM5ZOOM} (set PYDYN_TM5ZOOM)"
 )
 
@@ -277,6 +279,18 @@ WAIVED = {
     "MAP_EPS": "mirrored as a tuple, see TUPLES",
     "PPM": "mirrored as a tuple, see TUPLES",
     "IC_MEAN_RANGE": "mirrored as a tuple, see TUPLES",
+    # pydyn.gpu: launch shapes, opcodes and the benchmark's inputs, none a model value
+    "NT_MAX": "csrc/pd.h's PD_NT_MAX, see test_device_tracer_cap_matches_pd_h",
+    "SEARCH_ROUNDS": "gpu.kernels' sub-cycle search: rounds queued before one host read",
+    "LINES": "gpu.coop's launch shape (lines a group)",
+    "CVF_WARPS": "gpu.convec_gen's launch shape (warps a block)",
+    "COPY": "gpu.boxes' opcode", "MUL": "gpu.boxes' opcode", "DIV": "gpu.boxes' opcode",
+    "SEQSUM": "gpu.boxes' opcode", "SET": "gpu.boxes' opcode", "ADV": "gpu.boxes' opcode",
+    "DIVMUL": "gpu.boxes' opcode", "ZSUM": "gpu.boxes' opcode", "ZSUMMUL": "gpu.boxes' opcode",
+    "SECONDS_A_YEAR": "gpu.bench's unit for sim-yr/h (365 days), not a model value",
+    "JRED": "gpu.bench's input: glb3x2's reduced grid as the fixture's dump records it; the "
+            "replays read it from each dump (pydyn.redgrid)",
+    "CLUSTSIZE": "gpu.bench's input, with JRED",
 }
 
 # Fortran-side limits with no Python counterpart, so there is nothing to compare. Recorded
@@ -289,17 +303,18 @@ NO_COUNTERPART = {
 
 
 def numeric_constants():
-    """(module name, constant name, value) for every uppercase numeric in the package."""
+    """(module name, constant name, value) for every uppercase numeric in the package and its
+    subpackages (`gpu.kernels`, `zoom.tree`, ...)."""
     out = []
-    for info in pkgutil.iter_modules(pydyn.__path__):
-        mod = importlib.import_module(f"pydyn.{info.name}")
+    for info in pkgutil.walk_packages(pydyn.__path__, "pydyn."):
+        mod = importlib.import_module(info.name)
         for key, value in vars(mod).items():
             if not key.isupper() or key.startswith("_") or isinstance(value, bool):
                 continue
             if isinstance(value, (int, float)) or (
                 isinstance(value, tuple) and value and all(isinstance(x, (int, float)) for x in value)
             ):
-                out.append((info.name, key, value))
+                out.append((info.name.removeprefix("pydyn."), key, value))
     return sorted(out)
 
 
@@ -307,6 +322,7 @@ ROWS = [(m, k, v) for m, k, v in numeric_constants() if k in CONSTANTS]
 
 
 # ----------------------------------------------------------------- the tests
+@needs_checkout
 @pytest.mark.parametrize(("module", "name", "mine"), ROWS, ids=[f"{m}.{k}" for m, k, _ in ROWS])
 def test_constant_matches_fortran(module, name, mine):
     kind, fortran_name, where = CONSTANTS[name]
@@ -317,6 +333,7 @@ def test_constant_matches_fortran(module, name, mine):
     )
 
 
+@needs_checkout
 @pytest.mark.parametrize("label", sorted(KERNEL_CAPS))
 def test_kernel_sub_cycle_cap_matches_fortran(label):
     import inspect
@@ -329,6 +346,7 @@ def test_kernel_sub_cycle_cap_matches_fortran(label):
     assert mine == theirs, f"{owner.__name__}.{fn}({arg}=) is {mine!r}; {path} `{fortran_name}` is {theirs!r}"
 
 
+@needs_checkout
 def test_zoom_split_order_matches_dims():
     """zoom.SPLITORDER is dims.F90's `splitorder`, and zoom_mode 1 -- the only expansion
     define_splitorderzoom's transcription does -- is still the model's."""
@@ -340,6 +358,7 @@ def test_zoom_split_order_matches_dims():
     assert fortran_value("zoom_mode", (DIMS,)) == 1
 
 
+@needs_checkout
 def test_cfl_split_order_matches_advectm_cfl():
     """zoom.CFL_SPLITORDER is advectm_cfl.F90's own `splitorder`, the rehearsal's xyzzyx."""
     from pydyn import zoom
@@ -349,6 +368,7 @@ def test_cfl_split_order_matches_advectm_cfl():
     assert "".join(re.findall(r"'(\w)'", decl.group(1))) == zoom.CFL_SPLITORDER
 
 
+@needs_checkout
 def test_echlevs_matches_dims_levels():
     from pydyn import chemfields
 
@@ -358,6 +378,7 @@ def test_echlevs_matches_dims_levels():
     assert chemfields.ECHLEVS == theirs
 
 
+@needs_checkout
 @pytest.mark.parametrize("label", sorted(TUPLES))
 def test_tuple_matches_fortran(label):
     getter, module_name, spec = TUPLES[label]
@@ -379,6 +400,7 @@ def test_every_numeric_constant_is_accounted_for():
     )
 
 
+@needs_checkout
 def test_every_mirror_is_reachable():
     """A source file that moved makes a mirror unverifiable, which is a failure, not a skip."""
     files = {f for _, _, where in CONSTANTS.values() for f in ((where,) if isinstance(where, str) else where)}
@@ -387,3 +409,12 @@ def test_every_mirror_is_reachable():
     for rel_path in sorted(files):
         assert (TM5ZOOM / rel_path).is_file(), f"{rel_path} is gone from the checkout"
     assert NO_COUNTERPART, "keep the record of Fortran limits that have no Python side"
+
+
+def test_device_tracer_cap_matches_pd_h():
+    """gpu.kernels.NT_MAX, which refuses a tracer count, is the kernels' own PD_NT_MAX."""
+    from pydyn.gpu import kernels
+
+    header = (pydyn.__path__[0] + "/gpu/csrc/pd.h")
+    found = re.search(r"#define\s+PD_NT_MAX\s+(\d+)", open(header).read())
+    assert found and int(found.group(1)) == kernels.NT_MAX

@@ -32,13 +32,17 @@ git -C "$LAB" archive HEAD | tar -x -C "$PUB"
 rm -f "$PUB/CLAUDE.md"
 git -C "$PUB" add -A
 
-SELF=(':!runs/export_public.sh' ':!tests/test_export_public.py')  # they name what they look for
+# This script and its test name the strings the first three checks look for, so those skip
+# them; the token check skips nothing (the test builds its token at run time).
+SELF=(':!runs/export_public.sh' ':!tests/test_export_public.py')
 bad=0
 if hits=$(git -C "$PUB" grep -n --cached 'CLAUDE\.md' -- "${SELF[@]}"); then
     echo "$hits" >&2; echo "export_public: the public tree cites CLAUDE.md" >&2; bad=1; fi
 if hits=$(git -C "$PUB" grep -n --cached '/Users/' -- ':!runs/MANIFEST.md' "${SELF[@]}"); then
     echo "$hits" >&2; echo "export_public: a laptop path outside runs/MANIFEST.md" >&2; bad=1; fi
-if hits=$(git -C "$PUB" grep -nE --cached 'ghp_[A-Za-z0-9]{20}|github_pat_|xox[bp]-|BEGIN [A-Z ]*PRIVATE KEY' -- "${SELF[@]}"); then
+if hits=$(git -C "$PUB" grep -nE --cached '/(projects|scratch/alpine|home|glade/u/home)/[a-z]{4}[0-9]{4}' -- "${SELF[@]}"); then
+    echo "$hits" >&2; echo "export_public: a cluster username in a path (write \$USER)" >&2; bad=1; fi
+if hits=$(git -C "$PUB" grep -nE --cached 'ghp_[A-Za-z0-9]{20}|github_pat_[A-Za-z0-9_]{20}|xox[bp]-[0-9]|BEGIN [A-Z ]*PRIVATE KEY'); then
     echo "$hits" >&2; echo "export_public: a token-shaped string" >&2; bad=1; fi
 if [ $bad -ne 0 ]; then
     git -C "$PUB" reset -q --hard HEAD

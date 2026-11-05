@@ -4,8 +4,8 @@
 # Rides the user's `ssh alpine` ControlMaster (BatchMode: no Duo).
 set -uo pipefail
 SRC=${PYDYN_SRC:-$(cd "$(dirname "$0")/../.." && pwd)}
-R=${PYDYN_ALPINE_ROOT:-/projects/aspe7977/pydyn}
 F() { grep -v "consoletype\|use tty"; }
+R=${PYDYN_ALPINE_ROOT:-/projects/$(ssh -o BatchMode=yes alpine 'echo $USER' 2>&1 | F | tail -1)/pydyn}
 J=$(ssh -o BatchMode=yes alpine 'squeue -u $USER -n pydyn-hold -t R -h -o %i' 2>&1 | F | head -1)
 [ -n "$J" ] || { echo "no running pydyn-hold job: sbatch $R/runs/alpine/hold.slurm"; exit 2; }
 echo "$(git -C "$SRC" rev-parse --short HEAD)$(git -C "$SRC" diff --quiet HEAD || echo +dirty)" > /tmp/arun.COMMIT.$$

@@ -4,7 +4,8 @@ type: software
 title: "pydyn: a serial Python reference of the TM5 dynamic core"
 abstract: >-
   A NumPy transcription of the transport core of the TM5 atmospheric chemistry-transport
-  model that is bitwise equal to the production Fortran, with the tests that prove it.
+  model that is bitwise equal to the production Fortran under stated conditions (no FMA
+  contraction; the model's own FFT, LAPACK and libm), with the tests that prove it.
 authors:
   - family-names: Pera
     given-names: Ash

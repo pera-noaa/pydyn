@@ -1,6 +1,7 @@
 # Actions are pinned to exact releases (setup-uv has no moving major tag), so updates come here.
-# uv.lock's versions are the ones the bitwise results are measured under: a bump is a PR whose
-# CI run is the check, monthly and grouped so one NumPy move is one PR.
+# uv.lock's versions are the ones the bitwise results are measured under: a bump is a PR, monthly
+# and grouped so one NumPy move is one PR.  Its CI run has no Fortran or dump-set test, so run
+# the full suite on it locally before merging (CONTRIBUTING.md).
 version: 2
 updates:
   - package-ecosystem: github-actions

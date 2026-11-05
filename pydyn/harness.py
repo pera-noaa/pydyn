@@ -125,13 +125,20 @@ def _ulp_distance(a, b):
     return np.abs(ordered(a) - ordered(b))
 
 
+def bits(x):
+    """The float64 bit patterns of x: equal exactly when x is bitwise equal, so 0.0 and -0.0
+    differ and two NaNs are equal only with the same payload."""
+    return np.ascontiguousarray(x, dtype="<f8").view(np.int64)
+
+
 def compare(fortran, python, name=""):
-    """Bitwise comparison report: dict(equal, n_diff, max_ulp, max_abs, max_rel, first, first_values)."""
+    """Bitwise comparison report: dict(equal, n_diff, max_ulp, max_abs, max_rel, first, first_values).
+    Bitwise is the bit patterns (`bits`); a signed-zero difference counts with max_ulp 0."""
     fortran = np.asarray(fortran, dtype=float)
     python = np.asarray(python, dtype=float)
     if fortran.shape != python.shape:
         raise ValueError(f"{name}: shape {fortran.shape} vs {python.shape}")
-    differ = ~((fortran == python) | (np.isnan(fortran) & np.isnan(python)))
+    differ = bits(fortran) != bits(python)
     if not differ.any():
         return {"name": name, "equal": True, "n_diff": 0, "max_ulp": 0, "max_abs": 0.0, "max_rel": 0.0}
     diff = np.abs(fortran - python)

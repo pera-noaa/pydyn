@@ -776,12 +776,17 @@ class Emu32Backend(EmuBackend):
 
 def host_library(flags=None, tag=None):
     """csrc/ compiled for the host: the emulation kernels plus the twin dgetrf_ / dgetri_ /
-    exp / log / pow (csrc/host_twin.inc), cached by a hash of the sources and flags."""
+    exp / log / pow (csrc/host_twin.inc), cached by a hash of the sources, the flags and the
+    compiler ($CXX and its --version: emu's bitwise result is that compiler's)."""
+    from ..ops import compiler_id
+
     if flags is None:
         flags = ["-O2", "-ffp-contract=off", "-fno-fast-math", "-std=c++14", "-fPIC", "-shared"]
-    if tag is None:
-        tag = hashlib.sha1((_source_text() + " ".join(flags) + platform.platform()).encode()).hexdigest()[:12]
     cxx = os.environ.get("CXX", "c++")
+    if tag is None:
+        key = _source_text() + " ".join(flags) + platform.platform() + compiler_id(cxx)
+        tag = hashlib.sha1(key.encode()).hexdigest()[:12]
+    errors = []
     for root in (Path(__file__).parent / "__pycache__", Path.home() / ".cache" / "pydyn"):
         so = root / f"_pd_host_{tag}.so"
         if so.exists():
@@ -799,9 +804,11 @@ def host_library(flags=None, tag=None):
                 )
                 os.replace(out, so)
             return so
-        except OSError:
-            continue
-    raise RuntimeError("pydyn.gpu: could not build the host library")
+        except subprocess.CalledProcessError as e:
+            errors.append(f"{root}: {e.stderr.strip()[:2000]}")
+        except OSError as e:
+            errors.append(f"{root}: {e}")
+    raise RuntimeError(f"pydyn.gpu: could not build the host library with {cxx}:\n" + "\n".join(errors))
 
 
 _BACKEND = None

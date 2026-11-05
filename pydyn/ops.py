@@ -86,7 +86,9 @@ def _cube(x):
 
 # A C loop that applies a library function to every element, through the function's own
 # address: the same call the scalar path makes, without one Python call per value.  Compiled on
-# first use; without a C compiler the scalar np.vectorize path below is kept.
+# the first libm call, not at import; without a C compiler the scalar np.vectorize path is kept
+# (with a warning).  The loop only calls f, so the compiler cannot change a value; it is in the
+# cache key anyway (compiler_id).
 _MAP_SOURCE = r"""
 #include <stddef.h>
 void map1(double (*f)(double), const double *x, double *y, size_t n)
@@ -98,14 +100,28 @@ void mapi(double (*f)(double, int), const double *x, int k, double *y, size_t n)
 """
 
 
+def compiler_id(cmd):
+    """`cmd` and the first line of its --version: what a cached build's key must carry."""
+    import subprocess
+
+    try:
+        out = subprocess.run([cmd, "--version"], capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.SubprocessError):
+        return cmd
+    return f"{cmd} {out.splitlines()[0] if out else ''}"
+
+
 def _map_library():
     import hashlib
     import platform
     import subprocess
     import tempfile
+    import warnings
     from pathlib import Path
 
-    tag = hashlib.sha1((_MAP_SOURCE + platform.platform()).encode()).hexdigest()[:12]
+    cc = os.environ.get("CC", "cc")
+    tag = hashlib.sha1((_MAP_SOURCE + platform.platform() + compiler_id(cc)).encode()).hexdigest()[:12]
+    errors = []
     for root in (Path(__file__).parent / "__pycache__", Path.home() / ".cache" / "pydyn"):
         so = root / f"_libm_map_{tag}.so"
         if so.exists():
@@ -115,23 +131,37 @@ def _map_library():
             with tempfile.TemporaryDirectory(dir=root) as tmp:
                 src, out = Path(tmp) / "map.c", Path(tmp) / "map.so"
                 src.write_text(_MAP_SOURCE)
-                cc = os.environ.get("CC", "cc")
                 subprocess.run([cc, "-O1", "-shared", "-fPIC", "-o", str(out), str(src)], check=True,
-                               capture_output=True)  # fmt: skip
+                               capture_output=True, text=True)  # fmt: skip
                 os.replace(out, so)  # atomic: concurrent workers may build it at once
             return ctypes.CDLL(str(so))
-        except (OSError, subprocess.CalledProcessError):
-            continue
+        except subprocess.CalledProcessError as e:
+            errors.append(f"{root}: {e.stderr.strip()[:500]}")
+        except OSError as e:
+            errors.append(f"{root}: {e}")
+    warnings.warn(f"pydyn.ops: no C loop for libm ({cc}), one value at a time: " + "; ".join(errors),
+                  stacklevel=3)
     return None
 
 
-_MAP = _map_library() if os.environ.get("PYDYN_LIBM_SCALAR") != "1" else None
+_MAP_BUILT = []
+
+
+def _map():
+    """The compiled loop, built on first use (None: scalar; PYDYN_LIBM_SCALAR=1 forces that)."""
+    if not _MAP_BUILT:
+        _MAP_BUILT.append(_map_library() if os.environ.get("PYDYN_LIBM_SCALAR") != "1" else None)
+    return _MAP_BUILT[0]
+
+
 _DP = ctypes.POINTER(ctypes.c_double)
 
 
 def _mapped(fn, nargs, k=None):
     """fn (a ctypes function of the library) over arrays, through the C loop."""
     addr = ctypes.cast(fn, ctypes.c_void_p)
+
+    loop = _map()
 
     def call(*args):
         arrays = np.broadcast_arrays(*(np.asarray(a, dtype=float) for a in args))
@@ -140,11 +170,11 @@ def _mapped(fn, nargs, k=None):
         y = np.empty(xs[0].size)
         ptrs = [x.ctypes.data_as(_DP) for x in xs]
         if k is not None:
-            _MAP.mapi(addr, ptrs[0], ctypes.c_int(k), y.ctypes.data_as(_DP), ctypes.c_size_t(y.size))
+            loop.mapi(addr, ptrs[0], ctypes.c_int(k), y.ctypes.data_as(_DP), ctypes.c_size_t(y.size))
         elif nargs == 1:
-            _MAP.map1(addr, ptrs[0], y.ctypes.data_as(_DP), ctypes.c_size_t(y.size))
+            loop.map1(addr, ptrs[0], y.ctypes.data_as(_DP), ctypes.c_size_t(y.size))
         else:
-            _MAP.map2(addr, ptrs[0], ptrs[1], y.ctypes.data_as(_DP), ctypes.c_size_t(y.size))
+            loop.map2(addr, ptrs[0], ptrs[1], y.ctypes.data_as(_DP), ctypes.c_size_t(y.size))
         return y.reshape(shape)
 
     return call
@@ -156,16 +186,42 @@ def _bind(lib):
     for name, nargs in (("exp", 1), ("log", 1), ("cos", 1), ("sin", 1), ("pow", 2)):
         f = getattr(lib, name)
         f.restype, f.argtypes = ctypes.c_double, [ctypes.c_double] * nargs
-        setattr(libm, name, staticmethod(_mapped(f, nargs) if _MAP else np.vectorize(f, otypes=[float])))
+        setattr(libm, name, staticmethod(_mapped(f, nargs) if _map() else np.vectorize(f, otypes=[float])))
+
+
+_SCALAR = {  # the C library's functions one value at a time: math.* calls them
+    "exp": np.vectorize(math.exp, otypes=[float]),
+    "log": np.vectorize(_log, otypes=[float]),
+    "pow": np.vectorize(_pow, otypes=[float]),
+    "cos": np.vectorize(math.cos, otypes=[float]),
+    "sin": np.vectorize(math.sin, otypes=[float]),
+}
+
+
+def _first_call(name):
+    """libm.<name> until the first call, which binds all five (the system libm through the C
+    loop, else _SCALAR) and makes it."""
+
+    def call(*args):
+        for key, f in _SCALAR.items():
+            if getattr(libm.__dict__[key], "__func__", None) is _STUBS[key]:
+                setattr(libm, key, staticmethod(f))
+        _system_libm()
+        return getattr(libm, name)(*args)
+
+    return call
+
+
+_STUBS = {name: _first_call(name) for name in _SCALAR}
 
 
 class libm:  # a namespace, not a class to instantiate
     cube = staticmethod(_cube)
-    exp = staticmethod(np.vectorize(math.exp, otypes=[float]))
-    log = staticmethod(np.vectorize(_log, otypes=[float]))
-    pow = staticmethod(np.vectorize(_pow, otypes=[float]))
-    cos = staticmethod(np.vectorize(math.cos, otypes=[float]))
-    sin = staticmethod(np.vectorize(math.sin, otypes=[float]))
+    exp = staticmethod(_STUBS["exp"])
+    log = staticmethod(_STUBS["log"])
+    pow = staticmethod(_STUBS["pow"])
+    cos = staticmethod(_STUBS["cos"])
+    sin = staticmethod(_STUBS["sin"])
     path = None  # the library, when not the system libm
 
 
@@ -176,7 +232,7 @@ def use_libm(path):
     if hasattr(lib, "__powr8i4"):  # ifort's integer power, x**3
         powi = lib.__powr8i4
         powi.restype, powi.argtypes = ctypes.c_double, [ctypes.c_double, ctypes.c_int]
-        cube = _mapped(powi, 1, k=3) if _MAP else np.vectorize(lambda x: powi(x, 3), otypes=[float])
+        cube = _mapped(powi, 1, k=3) if _map() else np.vectorize(lambda x: powi(x, 3), otypes=[float])
         libm.cube = staticmethod(cube)
     libm.path = path
 
@@ -186,11 +242,8 @@ def _system_libm():
     import ctypes.util
 
     name = ctypes.util.find_library("m") or ctypes.util.find_library("c")
-    if _MAP and name:
+    if name and _map():
         _bind(ctypes.CDLL(name))
-
-
-_system_libm()
 
 
 if os.environ.get("PYDYN_LIBM"):

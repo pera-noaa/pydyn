@@ -174,7 +174,7 @@ def test_initial_field_is_the_first_dumped_state():
 @needs(IC_FILE, "PYDYN_IC_FILE")
 @pytest.mark.skipif(not (balance.fftw_library() and lapack.lapack_library()),
                     reason="needs the model's FFTW and LAPACK")
-def test_free_run_on_nothing_but_the_input_files(capsys):
+def test_free_run_on_nothing_but_the_input_files():
     """The whole day carried by the Python from the initial field on, with the meteo, the
     emission, the loss-rate inputs and the initial tracers all read from the files: every
     checkpoint bitwise, and not one event seeded from a dump -- the first chemistry, which
@@ -183,7 +183,7 @@ def test_free_run_on_nothing_but_the_input_files(capsys):
         DUMP_DIR, free_run=True, meteo_root=METEO_ROOT, emissions=EMIS_DIR, chemistry=CHEM_ROOT,
         initial_file=IC_FILE,
     )  # fmt: skip
-    assert "FAILED" not in capsys.readouterr().out
+    assert not results.failures, results.failures
     table = replay.summarize(results)
     bad = {(k, n): a for k, row in table.items() for n, a in row["arrays"].items() if a["n_diff"]}
     assert not bad, bad

@@ -8,7 +8,9 @@
 set -euo pipefail
 SHA=$1; KIND=$2; LABEL=repin_${KIND}_$SHA
 # PYDYN_TM5ZOOM: the tm5-zoom checkout (default ../tm5-zoom, as tests/common.py); TM5_ENV: the
-# script that sets up its Mac build environment
+# script that sets up its Mac build environment (default ~/Documents/local-tm5/tm5_env.sh; each
+# set's config/ holds the one used); TM5_CONDA_PREFIX (default /opt/anaconda3) and BREW (default
+# $(brew --prefix), else /opt/homebrew): where machine-local-mac.rc's libraries and FFTW are.
 TM5ZOOM=${PYDYN_TM5ZOOM:-$(cd "$(dirname "$0")/../.." && pwd)/tm5-zoom}
 SCR=$TM5ZOOM/.tm5-cloud-scratch
 B=$SCR/pydyn_build
@@ -43,17 +45,31 @@ if [ $KIND = cfl ]; then
   EXTRA+=(time.ntimestep=10800 time.ndyn_max=10800 "meteo.tinterp.*=interp3")
 fi
 export TM5_GITROOT=$CLONE CARBONTRACKER=$SCR
-export CONDA_PREFIX=/opt/anaconda3   # machine-local-mac.rc reads it since 5292746df; the older sets used this prefix
-source "${TM5_ENV:-$HOME/Documents/local-tm5/tm5_env.sh}"
+export CONDA_PREFIX=${TM5_CONDA_PREFIX:-/opt/anaconda3}  # machine-local-mac.rc reads it since 5292746df
+BREW=${BREW:-$(brew --prefix 2>/dev/null || echo /opt/homebrew)}
+ENV_SH=${TM5_ENV:-$HOME/Documents/local-tm5/tm5_env.sh}
+[ -f "$ENV_SH" ] || { echo "setup_repin: no $ENV_SH (set TM5_ENV to the build environment script)" >&2; exit 1; }
+source "$ENV_SH"
 cd $CLONE
 base/trunk/bin/pycasso_setup_tm5 $RC \
   build.configure.flags=optim-fast \
-  "compiler.lib.lapack.libs=-framework Accelerate -L/opt/homebrew/lib -lfftw3" \
+  "compiler.lib.lapack.libs=-framework Accelerate -L$BREW/lib -lfftw3" \
   "compiler.flags.optim-fast.fflags=-O3 -march=native -ffp-contract=off" \
   par.mpi=F par.ntask=1 par.compute_ranks=1 par.io_ranks=0 par.io_server_ranks=0 \
   ct.ensemble.size=1 ct.ensemble.total_members=1 cfl.cache.read=F cfl.cache.write=F \
   pydyn.dump=T pydyn.dump.dir=$B/dumps/$LABEL pydyn.dump.max_events=3000 \
   ${EXTRA[@]+"${EXTRA[@]}"} --allow-new-keys --no-submit -j 8
 cd $B/runs/$LABEL/run
-DYLD_LIBRARY_PATH=/opt/homebrew/lib ./$LABEL.ml137.local-mac.x $LABEL.rc > tm5.out 2>&1 || true
-echo "$LABEL: $(ls $B/dumps/$LABEL/*.meta | wc -l) events; tail of tm5.out:"; tail -4 tm5.out
+status=0
+DYLD_LIBRARY_PATH=$BREW/lib ./$LABEL.ml137.local-mac.x $LABEL.rc > tm5.out 2>&1 || status=$?
+echo "$LABEL: $(ls $B/dumps/$LABEL/*.meta | wc -l) events, exit $status; tail of tm5.out:"; tail -4 tm5.out
+# The cfl set's run aborts once its rejected step is dumped, on the hourly surface fields at a
+# 10800 s step (mdat_TimeInterpolation; runs/MANIFEST.md, repin_cfl).  Any other failure, or
+# that one in another set, is a failed set.
+if [ $status -ne 0 ]; then
+  if [ $KIND = cfl ] && grep -q "mdat_TimeInterpolation" tm5.out; then
+    echo "$LABEL: the expected end (mdat_TimeInterpolation after the reduced step)"
+  else
+    echo "setup_repin: the model failed (exit $status), see $PWD/tm5.out" >&2; exit 1
+  fi
+fi

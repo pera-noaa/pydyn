@@ -8,6 +8,7 @@
 #   make OPT="-O3"       # measure what optimisation does to the bitwise comparison
 #   make clean
 #   make TM5ZOOM=/path/to/tm5-zoom   # kernels from another checkout (default ../../tm5-zoom)
+#   make UNPINNED=1      # build from a checkout that is not at TM5ZOOM_PIN (refused otherwise)
 #   make zoom            # harness_zoom2 and harness_zoom3: two and three regions, the real
 #                        # zoom_tools, advect_tools__speedup, modelIntegration and advectm_cfl
 #                        # (docs/state.md section 3d); objects in build-zoom2/, build-zoom3/
@@ -21,8 +22,14 @@
 
 # TM5ZOOM is the tm5-zoom checkout the kernels are read from; nothing is written
 # there.  Default: a tm5-zoom checkout beside this repo.  Override on the command line
-# or in the environment to build against another checkout or sha.
+# or in the environment to build against another checkout or sha.  The claims are made at
+# TM5ZOOM_PIN: a checkout at another commit, or with modified kernel sources, is refused
+# unless UNPINNED=1 (`git -C <tm5-zoom> worktree add DIR $$(cat TM5ZOOM_PIN)` makes one at the
+# pin).  Every binary gets a <binary>.tm5zoom sidecar naming the commit it was built from,
+# which the tests print in their header.
 TM5ZOOM ?= ../../tm5-zoom
+PIN     := $(shell cat TM5ZOOM_PIN)
+AT      := $(shell git -C $(TM5ZOOM) rev-parse HEAD 2>/dev/null)
 
 ROOT   := $(TM5ZOOM)
 TRUNK  := $(ROOT)/proj/ct-unified/trunk/src
@@ -74,10 +81,11 @@ endif
 
 $(BIN): $(OBJS)
 	$(FC) $(BFLAGS) -o $@ $(OBJS) $(LIBS)
+	@$(STAMP) > $@.tm5zoom
 
 $(BDIR):
 	mkdir -p $@
-$(BDIR)/stubs.o: stubs.F90 tm5.inc advect.h | $(BDIR)
+$(BDIR)/stubs.o: stubs.F90 tm5.inc advect.h | $(BDIR) pincheck
 	$(FC) $(BFLAGS) $(DEFS) -c -o $@ $<
 $(BDIR)/advectx.o: $(SRC_X) $(BDIR)/stubs.o tm5.inc advect.h
 	$(FC) $(BFLAGS) $(DEFS) -c -o $@ $<
@@ -122,10 +130,11 @@ zoom:
 zoom-one: $(ZBIN)
 $(ZBIN): $(ZOBJS)
 	$(FC) $(ZFLAGS) -o $@ $(ZOBJS) $(LIBS)
+	@$(STAMP) > $@.tm5zoom
 
 $(ZDIR):
 	mkdir -p $@
-$(ZDIR)/stubs.o: stubs.F90 tm5.inc advect.h | $(ZDIR)
+$(ZDIR)/stubs.o: stubs.F90 tm5.inc advect.h | $(ZDIR) pincheck
 	$(FC) $(ZFLAGS) $(DEFS) -c -o $@ $<
 $(ZDIR)/datetime.o: $(SRC_DT) $(ZDIR)/stubs.o
 	$(FC) $(ZFLAGS) $(DEFS) -c -o $@ $<
@@ -158,7 +167,24 @@ $(ZDIR)/harness_zoom.o: harness_zoom.F90 $(ZDIR)/modelIntegration.o $(ZDIR)/adve
 $(SRC_X) $(SRC_Y) $(SRC_Z) $(SRC_ADV) $(SRC_CONV) $(SRC_ZT) $(SRC_AT) $(SRC_MI) $(SRC_DT) $(SRC_CC) $(SRC_CFL):
 	@echo "no tm5-zoom checkout at $(TM5ZOOM) -- pass TM5ZOOM=<path to tm5-zoom>"; exit 1
 
-clean:
-	rm -rf $(BIN) harness_zoom* $(BDIR) build-zoom* *.o *.mod *.dSYM
+# The kernel sources: uncommitted changes to them make a checkout not its HEAD.
+KERNELS := $(patsubst $(ROOT)/%,%,$(SRC_X) $(SRC_Y) $(SRC_Z) $(SRC_ADV) $(SRC_CONV) $(SRC_ZT) $(SRC_AT) \
+                                  $(SRC_MI) $(SRC_DT) $(SRC_CC) $(SRC_CFL))
+DIRTY    = $(shell git -C $(TM5ZOOM) status --porcelain -- $(KERNELS) 2>/dev/null)
+STAMP    = echo "$(AT)$(if $(DIRTY), with modified kernel sources)$(if $(filter-out $(PIN),$(AT)), (not the pin $(PIN)))"
+pincheck:
+ifndef UNPINNED
+	@if [ "$(AT)" != "$(PIN)" ]; then \
+	  echo "tm5-zoom at $(TM5ZOOM) is at $(or $(AT),no git commit), not the pin $(PIN) (TM5ZOOM_PIN)."; \
+	  echo "Build from a checkout at the pin (git -C $(TM5ZOOM) worktree add DIR $(PIN); make TM5ZOOM=DIR),"; \
+	  echo "or pass UNPINNED=1 to build from this one; the binaries then say so (<binary>.tm5zoom)."; \
+	  exit 1; fi
+	@if [ -n "$(DIRTY)" ]; then \
+	  echo "tm5-zoom at $(TM5ZOOM) has modified kernel sources; commit or stash them, or pass UNPINNED=1:"; \
+	  git -C $(TM5ZOOM) status --short -- $(KERNELS); exit 1; fi
+endif
 
-.PHONY: clean zoom zoom-one
+clean:
+	rm -rf $(BIN) harness_zoom[0-9]* *.tm5zoom $(BDIR) build-zoom[0-9]* *.o *.mod *.dSYM
+
+.PHONY: clean zoom zoom-one pincheck

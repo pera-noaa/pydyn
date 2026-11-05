@@ -71,6 +71,7 @@ def test_without_a_message_stages_only(repos):
     ("docs.md", "see CLAUDE.md for the rules\n", "cites CLAUDE.md"),
     ("notes.md", "data in /Users/someone/scratch\n", "laptop path"),
     ("key.txt", "ghp_" + "a" * 36 + "\n", "token-shaped"),
+    ("job.slurm", "cd /projects/abcd1234/pydyn\n", "cluster username"),
 ])
 def test_refuses_and_resets(repos, path, text, why):
     lab, pub = repos

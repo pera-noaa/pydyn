@@ -1,6 +1,6 @@
 """runs/fetch_fixture.py takes an archive only at the record's md5, and unpacks only into DIR.
 
-Offline: the listing is built here with file:// URLs, which urlretrieve reads like the record's.
+Offline: the listing is built here with file:// URLs, which urlopen reads like the record's.
 """
 
 import hashlib
@@ -52,8 +52,34 @@ def test_refuses_a_corrupted_download(tmp_path, record):
 def test_an_archive_at_the_md5_is_not_downloaded_again(tmp_path, record, monkeypatch):
     _, files = record
     ff.fetch(files, tmp_path / "out")
-    monkeypatch.setattr(ff.urllib.request, "urlretrieve", lambda *a: pytest.fail("downloaded again"))
+    monkeypatch.setattr(ff, "download", lambda *a: pytest.fail("downloaded again"))
     ff.fetch(files, tmp_path / "out")
+
+
+def test_an_unpacked_archive_is_neither_hashed_nor_unpacked_again(tmp_path, record, monkeypatch):
+    _, files = record
+    ff.fetch(files, tmp_path / "out")
+    monkeypatch.setattr(ff, "md5", lambda *a: pytest.fail("hashed again"))
+    monkeypatch.setattr(ff.tarfile, "open", lambda *a: pytest.fail("unpacked again"))
+    ff.fetch(files, tmp_path / "out")
+
+
+def test_a_changed_archive_is_checked_again(tmp_path, record):
+    _, files = record
+    ff.fetch(files, tmp_path / "out")
+    (tmp_path / "out" / files[0][0]).write_bytes(b"truncated")  # size and mtime no longer the stamp's
+    (tmp_path / "out" / "setA" / "e00001_m.bin").unlink()
+    ff.fetch(files, tmp_path / "out")
+    assert (tmp_path / "out" / "setA" / "e00001_m.bin").stat().st_size == 8
+
+
+def test_an_unpublished_record_is_a_message(monkeypatch):
+    def refuse(url, timeout):
+        raise ff.urllib.error.HTTPError(url, 404, "NOT FOUND", {}, None)
+
+    monkeypatch.setattr(ff.urllib.request, "urlopen", refuse)
+    with pytest.raises(SystemExit, match="not published yet"):
+        ff.listing("1")
 
 
 def test_a_wrong_archive_in_place_is_replaced(tmp_path, record):

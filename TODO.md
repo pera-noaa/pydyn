@@ -27,7 +27,8 @@ not on PyPI. The three dump sets a reader without TM5 can test against are the Z
 with the configuration that made it. Open, in order:
 
 1. Publish the Zenodo record (the owner's click), then fetch it back with
-   `runs/fetch_fixture.py` and diff against the sources.
+   `runs/fetch_fixture.py` and diff against the sources, and drop "a draft until the v0.1.0
+   release" from `README.md` ("What runs where") and `docs/state.md` §3b.
 2. CI on the fixture: macOS arm64 with Homebrew FFTW running the 8 fixture tests and failing on
    any skip (the platform they are bitwise on); Linux running the device free runs.
 3. Make the repository public (the owner's decision), tag `v0.1.0`, and a GitHub release
@@ -243,9 +244,11 @@ upper pin, `testpaths`; `ruff.toml` stays the lint config.
 **CI** (`.github/workflows/tests.yml`, `ubuntu-24.04`): `ruff check` and the suite on every
 push and pull request, on Python 3.10, 3.12 and 3.14 at `uv.lock`'s versions and on 3.10 at
 `--resolution lowest-direct` (NumPy 1.26.0, the declared floor). With no dumps, no tm5-zoom
-checkout and no compiled harness, 175 tests run and the rest skip by `tests/common.py`'s rules.
-Green on `pera-noaa/pydyn`. Dependabot proposes the Actions and `uv.lock` updates, each a PR
-whose CI run is the check. The sdist carries `tests/` and the root `conftest.py` (`MANIFEST.in`).
+checkout and no compiled harness, only the tests that need none of those run (the constants
+accounting among them); the rest skip by `tests/common.py`'s rules. Green on `pera-noaa/pydyn`.
+Dependabot proposes the Actions and `uv.lock` updates, each a PR that also needs the full
+suite run locally (CI has no Fortran or dump test). The sdist carries `tests/` and what they
+import or load (`MANIFEST.in`).
 
 ### PYD-1. Redo the optimisation and FMA measurement with ifort  [DONE 2026-09-24, Orion's build]  [U:4 F:3 E:M]
 

@@ -2,11 +2,12 @@
 
 Same interfaces and layout as pydyn.kernels (see its docstring), same algorithm, but every
 step is written in its simplest form and the fluxes are left untouched.  It agrees with
-pydyn.kernels -- and therefore with the Fortran -- to a few ulp (tests/test_simple.py);
-the differences are all rounding-level: one generic 1-D routine serves x, y and z,
-sub-cycling divides the flux by n exactly, sums are numpy sums.  (One diagnostic differs:
-stats['xi'] is the largest Courant number actually used, whereas dynamw's also counts the
-failed trial sub-steps.)
+pydyn.kernels -- and therefore with the Fortran -- to 1e-12 of each field's largest
+magnitude (tests/test_simple.py); element by element a small slope can be 1e5 ulp off (6e-11
+relative, measured), since the differences are rounding in sums of large terms: one generic
+1-D routine serves x, y and z, sub-cycling divides the flux by n exactly, sums are numpy sums.
+(One diagnostic differs: stats['xi'] is the largest Courant number actually used, whereas
+dynamw's also counts the failed trial sub-steps.)
 
 The slopes scheme (Russell & Lerner 1981).  Inside a cell of air mass m the tracer mass rm
 is distributed linearly: mixing ratio (rm + 2 s x) / m for x in [-1/2, 1/2], where s is the

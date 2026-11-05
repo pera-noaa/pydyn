@@ -48,6 +48,9 @@ class Model:
     `grid` is a `redgrid.RedGrid` when the region's grid is reduced, as every production
     configuration's is; x then goes through `advect_x_reduced` exactly as `replay` does it
     per event.  Left None the driver advects a uniform grid, which no production region has.
+
+    `inverse` "crout" is convection's fastminv as the default `make -C fortran` builds it
+    (without with_lapack); production builds with_lapack, which is `lapack.batched_inverse()`.
     """
 
     def __init__(self, bt, ndyn, limits=True, sources=None, chemistry=None, inverse="crout", grid=None):

@@ -103,5 +103,6 @@ def test_merged_set_replays_bitwise(mpi_set):
     workers = int(os.environ.get("PYDYN_WORKERS", "1"))
     results = replay.replay(mpi_set, out=open(os.devnull, "w"), workers=workers)
     assert results, "nothing replayed"
+    assert not results.failures, results.failures
     worst = {kind: max(r["max_ulp"] for r in reports) for _, kind, reports, _ in results}
     assert all(v == 0 for v in worst.values()), worst

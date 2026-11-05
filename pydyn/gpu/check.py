@@ -44,6 +44,9 @@ def match(cpu, dev):
     """{(kind, array): [equal, differ]} over the fingerprinted reports, and the list of
     mismatched checkpoints (seq, kind, array)."""
     table, bad = defaultdict(lambda: [0, 0]), []
+    for name, run in (("reference", cpu), ("device", dev)):
+        if getattr(run, "failures", None):
+            raise SystemExit(f"the {name} run raised on {len(run.failures)} events: {run.failures[:3]}")
     if [(e.seq, k) for e, k, _, _ in cpu] != [(e.seq, k) for e, k, _, _ in dev]:
         raise SystemExit("the two runs did not produce the same checkpoints")
     for (ev, kind, rc, _), (_, _, rd, _) in zip(cpu, dev, strict=True):

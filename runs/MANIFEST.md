@@ -16,6 +16,12 @@ in `docs/state.md` §3b rather than archived; the Orion and Hercules sets under
 `/work2/noaa/co2/ash/pydyn/dumps/`, the file system the two machines share. A set made on
 another machine needs its own row.
 
+**Recipes.** The laptop sets are made by `runs/setup_repin.sh` (it stops on a failed model run,
+except the cfl set's known abort). The Orion and Hercules sets were made by job scripts that
+are not in this repo (`run_model.slurm`, `step_accuracy.slurm`, `run_pyd*.sh`); the rows below
+name them and the `/work2` directory that keeps them. A published set carries its own recipe in
+its `config/`.
+
 | set | made | host | model sha | rc + overrides | build flags | events | size | what it proves |
 |---|---|---|---|---|---|---|---|---|
 | `pydyn_dump_phys` | 2026-09 | local mac (arm64, gfortran 16) | `tm5-zoom` pre-`4dc2017c5`, `NOAA/ct-unified` | `ch4_6x4_fwd.rc`, 23 h of 2000-01-01, glb6x4 60×45×34, 1 CH4 tracer, `nred = 4`, `with_lapack`, FFTW Poisson, `par.mpi=F par.ntask=1`, `oh.scale 0.901` | `-O3 -march=native -ffp-contract=off` | 759 | 4.8 GB | the whole production path: x y z v s c, massflow, cfl, meteo, m2phlb — per event and in `--free-run` (391 checkpoints), and with `--meteo`/`--emissions`/`--chemistry`/`--initial` the ingestion too: the free run on the input files alone (IC `istart 66` from `.tm5-cloud-scratch/ic/ch4_init_glb3x2_mmr.nc`: the lost rc's path is not on record, but this file reproduces the set's first state bitwise) |
@@ -263,9 +269,9 @@ device tests on an A100 slice and a whole A100 (`runs/alpine/README.md`).
 
 | copy | of | files | jobs | result |
 |---|---|---|---|---|
-| `/scratch/alpine/aspe7977/pydyn/dumps/repin_{phys,free,cfl}_745e94f70`, `zp_fixture` | the laptop sets above | 13,686 / 9,132 / 417 / 508 | hold 34705941 (c3gpu-c2-u13, `a100_3g.20gb`) | `test_gpu.py` 27 passed, 4 skipped (no NVPTX clang; the emu check); the three device free runs bitwise |
-| the four sets above, as `/projects/aspe7977/pydyn/stage` tars | the copies above | -- | `full.slurm` 34711564 (c3gpu-a9-u31-1, a whole A100 80GB PCIe) | `test_gpu.py` 37 passed, 4 skipped; the free runs bitwise; `pydyn.gpu.bench` in `docs/gpu_port.md` §5 |
-| `/scratch/alpine/aspe7977/pydyn/METEO/tm5-nc` | 2000-01-01..02, the January monthly file, lsm, oro (+ `.md5`) | 60 | same | input to the above |
+| `/scratch/alpine/$USER/pydyn/dumps/repin_{phys,free,cfl}_745e94f70`, `zp_fixture` | the laptop sets above | 13,686 / 9,132 / 417 / 508 | hold 34705941 (c3gpu-c2-u13, `a100_3g.20gb`) | `test_gpu.py` 27 passed, 4 skipped (no NVPTX clang; the emu check); the three device free runs bitwise |
+| the four sets above, as `/projects/$USER/pydyn/stage` tars | the copies above | -- | `full.slurm` 34711564 (c3gpu-a9-u31-1, a whole A100 80GB PCIe) | `test_gpu.py` 37 passed, 4 skipped; the free runs bitwise; `pydyn.gpu.bench` in `docs/gpu_port.md` §5 |
+| `/scratch/alpine/$USER/pydyn/METEO/tm5-nc` | 2000-01-01..02, the January monthly file, lsm, oro (+ `.md5`) | 60 | same | input to the above |
 | — | — | — | 34701177, and the held run | `test_production`'s meteo / `v` checks fail at 1e-12..2e-10 relative: they are bitwise to the Mac's FFTW and LAPACK, not Alpine's |
 
 Not on Alpine: the emissions, the chemistry inputs, the IC file, a tm5-zoom checkout, the Fortran

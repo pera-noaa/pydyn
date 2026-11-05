@@ -36,7 +36,7 @@ model's own libraries, which the Python calls through ctypes (§3c). Constants a
 their own terms (§4). `runs/MANIFEST.md` has a row for every dump set; three are published
 as a Zenodo fixture (§3b). `pydyn.gpu`, the same
 core with the state on a GPU, is held bitwise to this reference (float64: `emu`, `cuda`) or to
-its float32 host twin (Metal on Apple silicon, 15.6 simulated years an hour for a glb3x2 +
+its float32 host twin (Metal on Apple silicon, 16.9 simulated years an hour for a glb3x2 +
 nam1x1 interval); `pydyn/forward.py` runs from the input files alone, bitwise these dumps on
 the CPU: `docs/gpu_port.md` §9.
 
@@ -50,10 +50,12 @@ the CPU: `docs/gpu_port.md` §9.
 - not tested: OpenMP, and the three-level tree outside §3d
 
 ```
-python3 -m pytest                      # 488: 27 device + 29 metal + 19 property + 30 parity + 24 simple + 41 unit + 10 production + 12 ranks + 9 inputs + 159 zoom + 14 zoom meteo + 5 zoom physics + 9 zoom census + 100 constant
+uv run pytest -rs                      # the passes and the skips are the result: README's "Tests" table
 make -C fortran                        # builds the §3a harness; parity tests skip without it
 make -C fortran zoom                   # builds §3d's harness_zoom2/3; the zoom parity tests skip without them
-                                       # (kernels from ../../tm5-zoom; TM5ZOOM=<path> overrides)
+                                       # (kernels from ../../tm5-zoom, TM5ZOOM=<path> overrides; a checkout
+                                       # not at fortran/TM5ZOOM_PIN is refused unless UNPINNED=1, and the
+                                       # pytest header names the commit each harness was built from)
 python3 -m pydyn.replay <dump_dir>     # §3b: replay a pydyn_dump directory of a model run
 python3 -m pydyn.replay <dump_dir> --free-run --meteo <my.meteo.dir> --emissions <emis.ch4.input.dir> \
         --chemistry <input/ch4c13> --initial <istart.66.filename>   # … on nothing but the input files
@@ -339,9 +341,12 @@ free run takes ~20 s.
 **Published.** `repin_free_745e94f70`, `repin_cfl_745e94f70` and §3f's `zm_meteo_fixture` are
 the Zenodo fixture, [10.5281/zenodo.23955885](https://doi.org/10.5281/zenodo.23955885), each
 with the configuration that made it (`runs/MANIFEST.md`): `python3 runs/fetch_fixture.py DIR`,
-then `PYDYN_SETS=DIR`. `repin_phys_745e94f70` is not published, so the per-event and
+then `PYDYN_SETS=DIR` (the record is a draft until the v0.1.0 release; until then the script
+says the record is not found). `repin_phys_745e94f70` is not published, so the per-event and
 input-file tests on it skip without a model run of your own. The fixture's tests are bitwise on
-macOS arm64 with Accelerate and Homebrew's FFTW; elsewhere see §3c, the model's own libraries.
+macOS arm64 with Accelerate and Homebrew's FFTW, measured on one machine: an Apple M4 on macOS
+15.8.1, where the sets were made and the tests were last run on them (2026-11). Elsewhere see
+§3c, the model's own libraries; Accelerate's dispatch on another chip or macOS is untested.
 
 ### 3c. What can and cannot be bit-identical
 
@@ -584,8 +589,8 @@ still pass. And the physical constants that *are* covered are only covered where
 sets are on disk.
 
 `tests/test_constants.py` reads the declarations out of the checkout at `$PYDYN_TM5ZOOM` and
-compares them with the Python's: 100 cases, 0.2 s, every module-level numeric constant in the
-package. Keyed by the Python name and applied to every module that defines it, so two
+compares them with the Python's: one case per constant, 0.2 s, every module-level numeric
+constant in the package and its subpackages (`gpu`, `zoom`). Keyed by the Python name and applied to every module that defines it, so two
 modules disagreeing about `GRAV` is caught as well as either drifting from `binas`.
 Declarations that are expressions over other parameters (`fak = fr_excess * 8.5`,
 `rair = Rgas*1.e3/xmair`, `zcrdq = 1.0/epsilo - 1.0`) are resolved recursively across files,
@@ -597,5 +602,7 @@ Fortran limits with no Python counterpart — `nredmax` is the one — are recor
 
 It exists because `cfl_max_nloop_{y,z}` went 6, 10 → 1, 1 in `6f59f9f72`, inside a commit
 whose subject is an `MPI_Allreduce` fix, and nothing here would have noticed
-(`cfl_headroom.md` §5). It runs only where a checkout is present, so it protects a developer,
-not CI.
+(`cfl_headroom.md` §5). The comparisons run only where a checkout is present, so they protect a
+developer, not CI; the accounting test (no row and no waiver fails) and the device's tracer cap
+(`csrc/pd.h`) need none and run in CI too. The pytest header says whether the checkout is at
+the pin.

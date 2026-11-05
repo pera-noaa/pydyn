@@ -11,7 +11,7 @@ import shutil
 import numpy as np
 import pytest
 
-from pydyn import chem, diffusion, kernels, lapack, ops, synth
+from pydyn import chem, diffusion, harness, kernels, lapack, ops, synth
 from pydyn import zoom as Z
 from pydyn.redgrid import RedGrid
 
@@ -39,9 +39,9 @@ def twin_libm():
 
 
 def _equal(a, b):
-    """Bitwise as harness.compare means it: == or both NaN."""
+    """Bitwise as harness.compare means it: the same bit patterns."""
     a, b = np.asarray(a), np.asarray(b)
-    return a.shape == b.shape and bool(((a == b) | (np.isnan(a) & np.isnan(b))).all())
+    return a.shape == b.shape and bool((harness.bits(a) == harness.bits(b)).all())
 
 
 # ------------------------------------------------------------------ residency
@@ -493,6 +493,7 @@ def test_production_zoom_operators_are_the_models(be):
         tags={"x", "y", "z", "s", "massflow", "cfl"},
         out=__import__("io").StringIO(),
     )
+    assert not results.failures, results.failures
     kinds = {(kind, ev.region) for ev, kind, _, _ in results}
     assert kinds >= {("x", 1), ("x", 2), ("y", 1), ("y", 2), ("z", 1), ("z", 2), ("s", 2), ("cfl", 1)}
     assert all(r["equal"] for _, _, reports, _ in results for r in reports)

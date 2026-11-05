@@ -64,13 +64,14 @@ import sys
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from pathlib import Path
 
 import numpy as np
 
 from . import balance, cfl, chem, emis, ops, runtime
 from . import zoom as Z
 from . import zoom_meteo as ZM
-from .dump import FView, load_events
+from .dump import _META, FView, load_events
 from .harness import compare
 from .inputs import MASS_INPUTS, Ingestion, dumped_dkg, seed, times
 from .lapack import batched_inverse
@@ -860,6 +861,15 @@ def _read(ev, names):
             return
 
 
+class Results(list):
+    """replay's [(event, kind, reports, notes)]; `failures` is [(seq, tag, repr of the exception)]
+    of every event that raised, which is in no result."""
+
+    def __init__(self, items=(), failures=()):
+        super().__init__(items)
+        self.failures = list(failures)
+
+
 class _Session:
     """What a replay sets up once -- the events, the tree, the inputs, the solvers -- and the
     loop over a range of its events (`run`).  The per-event loop carries state only within a
@@ -910,7 +920,7 @@ class _Session:
         events, zm, met, run, ingestion = self.events, self.zm, self.met, self.run_, self.ingestion
         limit, wanted, out, nt = self.limit, self.wanted, self.out, self.nt
         hi = len(events) if hi is None else hi
-        results, pending, ic = [], {"cfl": {}, "massflow": {}}, None
+        results, pending, ic = Results(), {"cfl": {}, "massflow": {}}, None
         ic_seen = set() if with_ic else set(zm.regions())
         if not with_ic and ingestion is not None:  # a later range: its first read is not the run's start
             for r in zm.regions():
@@ -1006,13 +1016,14 @@ class _Session:
                 reports = replay_operator(zm, ev, aft, self.inverse, inner, ingested, ingestion, tr,
                                           self.engine)  # fmt: skip
                 emit(ev, kind, reports, notes)
-            except Exception as exc:  # report and carry on with the next event
+            except Exception as exc:  # recorded in results.failures; carry on with the next event
+                results.failures.append((ev.seq, ev.tag, repr(exc)))
                 print(f"e{ev.seq:05d} {ev.tag:>8}: FAILED {exc!r}", file=out)
         reader.shutdown(cancel_futures=True)
         return results
 
 
-def replay(dump_dir, rank=None, lapack="auto", verbose=False, out=sys.stdout, free_run=False, fft="auto",
+def replay(dump_dir, rank=None, lapack="auto", verbose=False, out=None, free_run=False, fft="auto",
                 meteo_root=None, emissions=None, chemistry=None, initial_file=None, meteo_grid=None,
                 tags=None, limit=None, workers=1, device=None, fingerprint=False):  # fmt: skip
     """Every replayable event of a dump set -- one region or a tree -- per event or (free_run)
@@ -1021,11 +1032,14 @@ def replay(dump_dir, rank=None, lapack="auto", verbose=False, out=sys.stdout, fr
     the operator of a bef_ pair or the event's tag (meteo, cfl, massflow, m2phlb) or `ic`.
     `tags` limits what is replayed per event, and what is returned of a free run (which runs
     everything); `limit` stops after that many results.  An event that raises is reported as
-    FAILED and the replay carries on.  `workers` > 1 replays per event in that many processes,
-    each a run of read intervals (the free run and a `limit` stay in one); their events come
+    FAILED, recorded in the returned Results' `failures`, and the replay carries on.  `out` is
+    where the report goes (default: sys.stdout at call time).  `workers` > 1 replays per event
+    in that many processes, each a run of read intervals (the free run and a `limit` stay in
+    one); their events come
     back as dump.EventRef, the order and the reports the same.  `device` 'emu' or 'cuda' runs
     every operator through pydyn.gpu with the state on the device (pydyn.gpu.engine);
     `fingerprint` adds the sha1 of the Python's array to every report."""
+    out = sys.stdout if out is None else out
     args = (dump_dir, rank, lapack, verbose, out, free_run, fft, meteo_root, emissions, chemistry,
             initial_file, meteo_grid, tags, limit, device, fingerprint)  # fmt: skip
     if workers > 1 and not free_run and limit is None:
@@ -1061,10 +1075,11 @@ def _replay_parallel(args, workers):
     jobs = [(quiet, lo, hi, i == 0, ops.libm.path) for i, (lo, hi) in enumerate(ranges)]
     with cf.ProcessPoolExecutor(len(jobs), mp_context=mp.get_context("spawn")) as pool:
         parts = list(pool.map(_replay_range, jobs))
-    results = []
-    for text, part in parts:
+    results = Results()
+    for text, part, failures in parts:
         out.write(text)
         results += part
+        results.failures += failures
     return results
 
 
@@ -1077,7 +1092,8 @@ def _replay_range(job):
     buf = io.StringIO()
     session = _Session(*args[:4], buf, *args[5:])
     results = session.run(lo, hi, with_ic)
-    return buf.getvalue(), [(ev.ref(), kind, reports, notes) for ev, kind, reports, notes in results]
+    refs = [(ev.ref(), kind, reports, notes) for ev, kind, reports, notes in results]
+    return buf.getvalue(), refs, results.failures
 
 
 def tally(results):
@@ -1127,6 +1143,10 @@ def main(argv=None):
                         "metal and emu32 in float32)")
     p.add_argument("-v", "--verbose", action="store_true")
     a = p.parse_args(argv)
+    if not Path(a.dump).is_dir():
+        p.error(f"{a.dump}: not a directory")
+    if not any(_META.match(f.name) for f in Path(a.dump).iterdir()):
+        p.error(f"{a.dump}: no pydyn_dump events (*.meta)")
     runtime.apply(a)
     print(runtime.describe(a.fft, a.lapack))
     results = replay(a.dump, rank=a.rank, lapack=a.lapack, verbose=a.verbose, free_run=a.free_run,
@@ -1140,7 +1160,9 @@ def main(argv=None):
         print(f"  {key}: {n}")
     if a.verbose:
         print("\n" + format_summary(summarize(results)))
-    return 0 if results and all(key[-1] for key in counts) else 1
+    if results.failures:
+        print(f"\n{len(results.failures)} events FAILED (raised); first: {results.failures[0]}")
+    return 0 if results and not results.failures and all(key[-1] for key in counts) else 1
 
 
 if __name__ == "__main__":

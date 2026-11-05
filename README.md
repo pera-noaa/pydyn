@@ -1,34 +1,69 @@
 # pydyn: a serial Python reference of the TM5 dynamic core
 
-A NumPy transcription of the transport core of TM5, the
-atmospheric chemistry-transport model, that is **bitwise equal to the production Fortran**,
-plus the tiers of tests that prove it. A port, an optimisation or a GPU kernel can be checked
-against it: the reference answers "what should this array be". Apache-2.0 (`LICENSE`,
-`NOTICE`); cite it with `CITATION.cff`; `CONTRIBUTING.md` before a change.
+pydyn is a NumPy transcription of the transport core of TM5, the atmospheric
+chemistry-transport model. It is **bitwise equal to the production Fortran under stated
+conditions**: no FMA contraction, and the model's own FFTW, LAPACK and libm (below and
+`docs/state.md` §3c). A port, an optimisation or a GPU kernel can be checked against it,
+because it answers "what should this array be".
+
+To check the claim yourself, `uv run pytest -rs` runs whatever your machine can and names
+everything it skips. The Zenodo fixture adds replays of the model's own dumps, and a tm5-zoom
+checkout at the pin adds the compiled Fortran (see "What runs where").
+
+Apache-2.0 (`LICENSE`, `NOTICE`); cite it with `CITATION.cff`; read `CONTRIBUTING.md` before a
+change.
 
 ## Status
 
 <!-- ≤ 20 lines, what is true now, no dated entries. Rewrite; do not append. -->
 
-- **Open:** a port-facing golden-case format (`PYD-7`: proposed, four questions for its consumer); the isotope and `with_budgets` chemistry (`PYD-5`); a GPU run from the input files at production size (`PYD-16`). `docs/state.md` is the technical head.
-- **Scope**: the production build variant (`slopes`, `without_wet_deposition`, no secmom, no OpenMP) for one region, a multi-rank run, and a zoom tree. Everything the dynamic step does, the CH4 run's two physics operators (surface injection, chemistry), and the reading of every input from the model's own files: meteo, `Calc_Kzz`, emission, the chemistry's fields, the initial tracer field.
-- **Tier 1** (`fortran/`): the production kernels compiled unmodified against stubs, driven from Python; bitwise at gfortran `-O0 -ffp-contract=off` and at ifort with Orion's production flags.
-- **Tier 2** (`pydyn/replay.py`, one replay for a single region or a zoom tree): real model runs replayed from the rc-gated `pydyn_dump` events they wrote, per event and in a free run in which the Python carries the state itself and reads nothing but the model's input files. Bitwise for a glb6×4 day (gfortran, and ifort with the model's MKL and libimf), for its 2-, 3- and 5-rank MPI runs merged (gfortran, and ifort beside IO-server ranks), and for the production glb3×2 + nam1×1 zoom with emission and chemistry, serial, MPI and four tracers merged over ranks (ifort, Orion's flags).
-- **A bitwise claim is a claim about flags**: no contraction (`-ffp-contract=off`, ifort `-fp-model precise -no-fma`), and the FFT, LAPACK and libm calls through the model's own libraries. Hercules' bare `-O3` is a few ulp off (`docs/state.md` §3c).
-- **What it has found.** `Check_CFL`'s z sub-cycle cap is what shortens production's time step; raising it is stable, worth 19 % of TM5 root, and the CT-CH4 EnKF would see it, as transport, without fitting the observations better (`docs/cfl_headroom.md`, `PYD-11`). And an MPI zoom child decayed its CH4 with the loss rates of a cell 3° east and 2° north, fixed in tm5-zoom `0385efe7e` (`docs/state.md` §3f).
-- Model pin: tm5-zoom `NOAA/ct-unified` at `745e94f70` (`docs/sources.md`). The dump module and its hooks are model code and live there, off unless `pydyn.dump : T`. `make -C fortran` reads that checkout in place (`TM5ZOOM=<path>`, default `../../tm5-zoom`) and writes nothing back.
-- `uv run pytest`: 550 tests, ~8 min with `PYDYN_WORKERS=4`: 41 device (`pydyn.gpu` on `emu`; 4 need the dump sets, 3 compile the CUDA source with an NVPTX clang), 42 Metal (`metal` against `emu32`; Apple silicon only), 9 forward (`pydyn.forward` from the input files: against the dumps, emu, reader processes, a staged run, Metal with either inverse, Metal's pipelined run through a failed speculation), 6 CUDA host side (`CudaBackend` against a stand-in cupy), 2 shared-memory hand-off, 19 property, 30 parity, 159 zoom (158 parity), 14 zoom meteo, 5 zoom physics, 9 zoom-census plumbing, 24 simple-vs-fast, 41 unit (one file per module), 11 fixture-fetch, 1 README example, 10 production replays, 12 rank-merge, 9 input-file, 99 constant mirrors. The 10 and the 12 need the dump sets, 4 of the 9 the model's input files too, the 99 the tm5-zoom checkout, 5 of the zoom ones the two zoom fixtures, the parity ones `make -C fortran` / `make -C fortran zoom`; they skip when absent, so read the count, not the colour. CI (`.github/workflows/tests.yml`: Python 3.10, 3.12 and 3.14 at `uv.lock`'s versions, and 3.10 at the oldest `pyproject.toml` admits) runs `ruff` and the 168 that need none of it (24 of them device tests, which need a C++ compiler; 6 the CUDA host side). `tests/common.py` names every path a test looks for and its `PYDYN_*` variable.
-- **`pydyn.gpu`: the same core with every region's state resident on a GPU** (TM5 is bandwidth-bound, so the arrays live on the device and only comparisons come down). Every operator is ported -- x/y/z of region 1 and of zoom children with their sub-cycle searches, convection, Check_CFL, Setup_MassFlow, the zoom exchange, emission, the CH4 loss rates, Calc_Kzz -- from one C source compiled for CUDA (`--fmad=false`; AMD through CuPy for HIP, `-ffp-contract=off`), for Metal in float32 (`xcrun metal -ffp-contract=off`) and for the host (`-ffp-contract=off`, the `emu` and `emu32` backends). **float64 bitwise to the reference** on `emu`, on an NVIDIA A100 and on an AMD MI100 (`tests/test_gpu.py` with the free runs); the closed libraries have open twins both sides load (`--lapack twin --libm twin`). A production-sized glb3x2 + nam1x1 interval replayed as a CUDA graph runs at 60.1 simulated years an hour on a whole A100 (41.2 on a 3g.20gb slice) and 29.6 on the MI100. On an Apple M4 (Metal, float32: bitwise to its host twin `emu32`, not to the reference) the device carries the same interval at 16.9 (`python3 -m pydyn.gpu.bench`; synthetic meteo), and `python3 -m pydyn.forward` runs from the input files alone at 24.0 (glb6x4, three reader processes, `--stage` for a slow file system; bitwise the model's dumps on the CPU, 14 days bitwise `emu32` on Metal). `docs/gpu_port.md`.
-- **Outside a TM5 installation** the package, the property, unit, simple-vs-fast and synthetic zoom tests and `pydyn.gpu` on `emu` need only NumPy, netCDF4 and a C++ compiler. Tier 1 and the constant mirrors need a tm5-zoom checkout, which is not distributed. Three of the dump sets are, as a 725 MB Zenodo fixture ([10.5281/zenodo.23955885](https://doi.org/10.5281/zenodo.23955885); `python3 runs/fetch_fixture.py DIR`, then `PYDYN_SETS=DIR`), each with a `config/` folder holding the rc the model read, the build fingerprint, the logs and the recipe: they add 8 tests against the model's own dumps -- the glb6×4 transport replay per event and as a free run, a free run through a rejected time step, both on the device (`emu`), and the zoom child's meteo. All 8 are bitwise on macOS arm64 with Accelerate and Homebrew's FFTW, the libraries the glb6×4 sets were made with; on Linux the device free runs, which load open twins of those libraries, stayed bitwise, while the CPU replays' meteo and convection checks were 1e-12 to 2e-10 off (`runs/MANIFEST.md`, Alpine; `docs/state.md` §3c). The rest of Tier 2 needs the model's input files.
-- **The dump sets are scratch, not in git**: 8.3 GB of glb6×4 sets on the maintainer's laptop (the tests' defaults, regenerable by `runs/setup_repin.sh`) and the glb3×2 and zoom sets under `/work2/noaa/co2/ash/pydyn/dumps/` on Orion and Hercules. `runs/MANIFEST.md` has a row for each, and for every job that touched those machines.
+- **Open:** a port-facing golden-case format (`PYD-7`), the isotope and `with_budgets` chemistry (`PYD-5`), a GPU run from the input files at production size (`PYD-16`), the public release (`PYD-17`). `docs/state.md` is the technical head.
+- **Scope**: the production build variant (`slopes`, `without_wet_deposition`, no secmom, no OpenMP) for one region, a multi-rank run and a zoom tree. Everything the dynamic step does, the CH4 run's two physics operators (surface injection, chemistry), and the reading of every input from the model's own files.
+- **Tier 1** (`fortran/`): the production kernels compiled unmodified against stubs, driven from Python. Bitwise at gfortran `-O0 -ffp-contract=off` and at ifort with Orion's production flags. Convection is `base/trunk`'s `convection.F90`; production's `convection__speedup` is covered by Tier 2.
+- **Tier 2** (`pydyn/replay.py`): real model runs replayed from the `pydyn_dump` events they wrote, per event and as a free run in which the Python carries the state and reads only the model's input files. Bitwise for a glb6×4 day, its 2-, 3- and 5-rank MPI runs, and the production glb3×2 + nam1×1 zoom with emission and chemistry (ifort, Orion's flags).
+- **The flags are part of the claim**: no contraction (`-ffp-contract=off`, ifort `-fp-model precise -no-fma`), and the FFT, LAPACK and libm calls through the model's own libraries. Hercules' bare `-O3` is a few ulp off (`docs/state.md` §3c).
+- **What it has found.** `Check_CFL`'s z sub-cycle cap is what shortens production's time step; raising it is stable and worth 19 % of TM5's root timer, its whole run (`docs/cfl_headroom.md`). An MPI zoom child decayed its CH4 with another cell's loss rates, fixed in tm5-zoom `0385efe7e` (`docs/state.md` §3f).
+- **`pydyn.gpu`**: the same core with the state resident on a GPU, from one C source for CUDA, HIP, Metal (float32) and the host (`emu`). It is float64-bitwise to the reference on `emu`, an A100 and an MI100. A production-sized zoom interval runs at 60.1 simulated years an hour on an A100, 29.6 on the MI100 and 16.9 on an Apple M4 (Metal, synthetic meteo: bitwise to its float32 host twin) (`docs/gpu_port.md`).
+- Model pin: tm5-zoom `NOAA/ct-unified` at `745e94f70` (`fortran/TM5ZOOM_PIN`, `docs/sources.md`). The dump module and its hooks are model code and live there, off unless `pydyn.dump : T`.
+- **The dump sets are scratch, not in git**: glb6×4 sets on the maintainer's laptop (regenerable by `runs/setup_repin.sh`) and glb3×2 and zoom sets on Orion and Hercules. Three are published (below). `runs/MANIFEST.md` has a row for each set and each job.
+
+## What runs where
+
+`uv run pytest --collect-only -q` counts the tests; a test that cannot run here skips and says
+why, so read the count, not the colour. `tests/common.py` names every path a test looks for
+and its `PYDYN_*` variable.
+
+| Needs | Tests | Bitwise against |
+|---|---|---|
+| NumPy, netCDF4 and a C++ compiler (CI: Python 3.10, 3.12, 3.14 and the oldest admitted versions) | property, unit, simple-vs-fast, synthetic zoom, the README example, `pydyn.gpu` on `emu` and its CUDA host side, the constants accounting, fixture-fetch and export plumbing | the NumPy reference (`emu`); simple-vs-fast to 1e-12 of each field's largest magnitude |
+| Apple silicon | Metal (`metal` against `emu32`) | its float32 host twin |
+| a tm5-zoom checkout at the pin, `make -C fortran` and `make -C fortran zoom` | Tier 1 parity, zoom parity, the constant mirrors | the compiled production kernels and declarations |
+| the Zenodo fixture ([10.5281/zenodo.23955885](https://doi.org/10.5281/zenodo.23955885); `python3 runs/fetch_fixture.py DIR`, then `PYDYN_SETS=DIR`; a draft until the v0.1.0 release) | 8: the glb6×4 transport replay per event and as a free run, a free run through a rejected time step, both on the device (`emu`), the zoom child's meteo | the model's own dumps, on macOS arm64 with Accelerate and Homebrew's FFTW (an Apple M4, macOS 15.8.1). On Linux the device free runs stayed bitwise; the CPU replays' meteo and convection were 1e-12 to 2e-10 off (`docs/state.md` §3c) |
+| the unpublished sets and the model's input files | the physics replays, input-file free runs, rank merges, zoom physics | the model's own dumps |
+
+Each fixture set has a `config/` folder with the rc the model read, the build fingerprint, the
+logs and the recipe. Without the model's FFTW and LAPACK the bitwise replays skip, and
+`test_replay_on_numpy_fallbacks` measures the NumPy fallbacks against a stated tolerance
+instead.
 
 ## Install and run
 
 ```bash
 uv sync             # Python 3.12 (.python-version) with uv.lock's NumPy, netCDF4, pytest, ruff
 uv run pytest -rs   # what cannot run here skips and says why
-make -C fortran     # Tier 1: gfortran and a tm5-zoom checkout (TM5ZOOM=<path>)
 ```
+
+Tier 1 and the constant mirrors need gfortran and a tm5-zoom checkout at the pin (not public
+yet). `make -C fortran` refuses any other commit unless `UNPINNED=1`:
+
+```bash
+git -C ../tm5-zoom worktree add ../tm5-zoom-pin $(cat fortran/TM5ZOOM_PIN)
+make -C fortran TM5ZOOM=../../tm5-zoom-pin && make -C fortran zoom TM5ZOOM=../../tm5-zoom-pin
+PYDYN_TM5ZOOM=../tm5-zoom-pin uv run pytest -rs
+```
+
+`python3 -m pydyn.replay DIR` (or `pydyn-replay DIR`) replays a `pydyn_dump` directory and
+exits non-zero if any event differs or raises.
 
 `uv sync --extra cuda` adds CuPy for `pydyn.gpu`. Without uv: `pip install -e . --group dev`
 (pip >= 25.1).
@@ -53,7 +88,7 @@ simple.advect_x(got.m, got.rm, got.rxm, got.rym, got.rzm, am)   # the same schem
 - history: `tools/pydyn` in tm5-zoom up to `4dc2017c5`, where this started. `git log` there for anything before 2026-09-22.
 
 tm5-zoom is not public yet (`docs/sources.md`). Existing tm5-zoom docs are not moved. Cite them as `tm5-zoom@<sha>:docs/<file>.md §N`.
-This README is the head.
+This README is the front page; `docs/state.md` is the technical head.
 
 ## Layout
 
@@ -65,5 +100,5 @@ This README is the head.
 | `docs/` | `state.md` (head; `state.history.md` its verbatim archive), `sources.md` (register of what is inherited), `cfl_headroom.md`, `gpu_port.md` and any later findings note |
 | `runs/` | `MANIFEST.md`: one row per dump set, pinned to a model sha, build flags and rc; `setup_repin.sh` (+ `make_scaling_one.py`) regenerates the three laptop sets at a given sha; `hpc/` the Orion/Hercules jobs: `replay.slurm` (`-c N` replays per event in N processes), `ranks.slurm`, `regress_zoom.sh` + `check_zoom.sh` (the zoom battery) |
 | `analysis/` | scripts that use the reference to answer a question rather than test it, run as `python3 -m analysis.<name>` from the repo root: `cfl_rejection_anatomy.py` (which operator refused one step, in detail), `cfl_cache_census.py` (how often production is reduced at all), `cfl_cap_replay.py` (over a whole dump set, how many reductions a different cap recovers), `step_accuracy.py` (whether the longer step conserves, stays positive and stays accurate), `obs_departure.py` (whether two forward runs differ by more than an inversion resolves at its obs), `obs_residual.py` (which of two forward runs better follows the obs' variability), `cfl_cap_replay_zoom.py` (`Check_CFL` with the child, over the census sets), `ch4_loss_bounds.py` (which loss rates a zoom child's chemistry applied) |
-| `results/` | small tracked csv and figures; dumps and large arrays are ignored |
+| `results/` | small tracked csv the `analysis/` scripts wrote (`results/README.md`: which script, which section); dumps and large arrays are ignored |
 | `TODO.md` | project items, prefixed `PYD-N` (never bare `#N`); `TODO.history.md` the full text landed items had |

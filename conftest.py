@@ -33,7 +33,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 
 def pytest_report_header(config):
-    """The conditions every result in the run holds under: NumPy's version and SIMD paths."""
+    """The conditions every result in the run holds under: NumPy's version and SIMD paths, and
+    the tm5-zoom commits the Fortran-side tests read."""
     import numpy as np
 
     try:
@@ -42,5 +43,31 @@ def pytest_report_header(config):
         from numpy.core._multiarray_umath import __cpu_dispatch__, __cpu_features__
 
     dispatched = [f for f in __cpu_dispatch__ if __cpu_features__.get(f)]
-    return (f"numpy {np.__version__} on {platform.machine()}, SIMD dispatched: "
-            f"{' '.join(dispatched) or 'none'}")
+    return [f"numpy {np.__version__} on {platform.machine()}, SIMD dispatched: "
+            f"{' '.join(dispatched) or 'none'}", *_tm5zoom_header()]
+
+
+def _tm5zoom_header():
+    """The tm5-zoom checkout's commit (test_constants reads it) and each built harness's
+    (fortran/<binary>.tm5zoom), against fortran/TM5ZOOM_PIN, the commit the claims are made at."""
+    import subprocess
+
+    fortran = Path(__file__).parent / "fortran"
+    if not (fortran / "TM5ZOOM_PIN").is_file():  # an sdist
+        return []
+    pin = (fortran / "TM5ZOOM_PIN").read_text().strip()
+    root = Path(os.environ.get("PYDYN_TM5ZOOM", Path(__file__).parents[1] / "tm5-zoom"))
+    at = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True)
+    at = at.stdout.strip() if at.returncode == 0 else ""
+    state = ("absent" if not root.is_dir() else "at the pin" if at == pin
+             else f"at {at[:9] or 'no git commit'}, NOT the pin")
+    lines = [f"tm5-zoom pin {pin[:9]}; checkout {root}: {state}"]
+    for name in ("harness", "harness_zoom2", "harness_zoom3"):
+        stamp = fortran / f"{name}.tm5zoom"
+        if stamp.is_file():
+            built = stamp.read_text().strip()
+            lines.append(f"fortran/{name}: built at the pin" if built == pin
+                         else f"fortran/{name}: built from {built}, NOT the pin")
+        elif (fortran / name).exists():
+            lines.append(f"fortran/{name}: no .tm5zoom stamp, commit unknown (rebuild it)")
+    return lines

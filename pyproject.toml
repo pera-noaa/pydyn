@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pydyn"
 version = "0.1.0"
-description = "Serial NumPy reference of the TM5 dynamic core, bitwise equal to the production Fortran"
+description = "Serial NumPy reference of the TM5 dynamic core, bitwise equal to the production Fortran under stated flags and libraries"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
@@ -18,9 +18,14 @@ classifiers = [
 requires-python = ">=3.10"
 # The bitwise results are measured under NumPy 1.26.4 and 2.5.4 (arm64 laptop; 2.5.4 is uv.lock's)
 # and 2.0.2 (Orion, x86-64);
-# docs/state.md section 3c says which claim holds where.  No upper pin: what a NumPy change
-# can move is caught by the suite, and conftest.py prints the version and SIMD paths it ran on.
+# docs/state.md section 3c says which claim holds where.  No upper pin: CI checks a NumPy change
+# only with what runs without TM5 (the device kernels against the NumPy reference among it; no
+# Fortran, dump or constants test), so a bump is run here on the full suite too; conftest.py
+# prints the version and SIMD paths it ran on.
 dependencies = ["numpy>=1.26", "netCDF4>=1.7"]  # netCDF4: the input files (meteo, emis, chemfields, initial)
+
+[project.scripts]
+pydyn-replay = "pydyn.replay:main"  # python -m pydyn.replay
 
 [project.urls]
 Repository = "https://github.com/pera-noaa/pydyn"

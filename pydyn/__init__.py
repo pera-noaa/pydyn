@@ -11,9 +11,10 @@ month's field from the 1x1 emission files, and ch4_chemistry_step), `chemfields`
 loss-rate climatologies and soil map from their files), `initial` (the istart-66 initial
 field), `meteo` (the ingestion of the tm5-nc archive), `diffusion` (Calc_Kzz on the
 ingested surface fields), `dump` + `replay` (replay of an instrumented model run).
-`simple` and `simple_diffusion` are the core and Calc_Kzz written for reading, a few ulp
-from the bitwise transcriptions.  See docs/dynamic_core_survey.md for the algorithm and
-docs/state.md for the layout conventions and the Fortran-parity harness.
+`simple` and `simple_diffusion` are the core and Calc_Kzz written for reading, within 1e-12
+of the bitwise transcriptions (tests/test_simple.py says relative to what).  The algorithm is
+tm5-zoom@4dc2017c5:docs/dynamic_core_survey.md, in the model's repository; docs/state.md has
+the layout conventions and the Fortran-parity harness.
 """
 
 from .driver import Model, State

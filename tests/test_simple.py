@@ -1,5 +1,7 @@
 """pydyn.simple agrees with pydyn.kernels, and pydyn.simple_diffusion with pydyn.diffusion (both
-bitwise with the Fortran), to a few ulp."""
+bitwise with the Fortran), to 1e-12 relative or 1e-12 of the field's largest magnitude: not a
+few ulp element by element, where a small slope (rxm, rym) differs by up to ~3e5 ulp, 6e-11
+relative (measured over five seeds of this grid), because the two sum large terms differently."""
 
 import numpy as np
 import pytest
