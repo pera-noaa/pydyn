@@ -24,7 +24,7 @@ jobs:
             resolution: lowest-direct
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0  # no moving major tag from v8 on: pin a release
+      - uses: astral-sh/setup-uv@v10.3.3  # no moving major tag from v8 on: pin a release
         with:
           python-version: ${{ matrix.python-version }}
       - name: install
